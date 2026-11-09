@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xam"
+             x:Class="CodixLabels.MainPage"
+             Title="CODIXLABELS"
+             BackgroundColor="{StaticResource BackgroundColor}">
+
+    <VerticalStackLayout>
+        <Label Text="CODIXLABELS"
+               FontAttributes="Bold"
+               FontSize="24"
+               TextColor="{StaticResource PrimaryColor}"
+               HorizontalOptions="Start"
+               Margin="12, 20, 0, 0" />
+
+        <Separator HeightRequest="1"
+                   BackgroundColor="{StaticResource BorderColor}"
+                   Margin="12, 0, 12, 0" />
+
+        <Label Text="Sistema de Gestión de Etiquetas"
+               FontSize="14"
+               TextColor="{StaticResource TextSecondary}"
+               HorizontalOptions="Start"
+               Margin="12, 0, 0, 20" />
+
+        <!-- Tarjeta de bienvenida -->
+        <Grid Padding="12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Tarjeta 1: Productos -->
+            <Border Grid.Row="0" Grid.Column="0"
+                    StrokeColor="{StaticResource Border}"
+                    StrokeThickness="1"
+                    CornerRadius="8"
+                    Padding="12"
+                    Margin="0, 0, 6, 6">
+                <VerticalStackLayout>
+                    <Label Text="Productos"
+                           FontAttributes="Bold"
+                           FontSize="16"
+                           TextColor="{StaticResource PrimaryColor}" />
+                    <Label Text="Gestione inventario de etiquetas"
+                           FontSize="12"
+                           TextColor="{StaticResource TextSecondary}" />
+                    <Button Text="Ver Productos"
+                            Clicked="OnProductsClicked"
+                            HorizontalOptions="Center"
+                            Margin="0, 8, 0, 0"
+                            Style="{StaticResource PrimaryButtonStyle}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Tarjeta 2: Configuración -->
+            <Border Grid.Row="0" Grid.Column="1"
+                    StrokeColor="{StaticResource Border}"
+                    StrokeThickness="1"
+                    CornerRadius="8"
+                    Padding="12"
+                    Margin="6, 0, 0, 6">
+                <VerticalStackLayout>
+                    <Label Text="Configuración"
+                           FontAttributes="Bold"
+                           FontSize="16"
+                           TextColor="{StaticResource PrimaryColor}" />
+                    <Label Text="Parámetros del sistema"
+                           FontSize="12"
+                           TextColor="{StaticResource TextSecondary}" />
+                    <Button Text="Ver Configuración"
+                            Clicked="OnConfigClicked"
+                            HorizontalOptions="Center"
+                            Margin="0, 8, 0, 0"
+                            Style="{StaticResource PrimaryButtonStyle}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Tarjeta 3: Usuarios -->
+            <Border Grid.Row="1" Grid.Column="0"
+                    StrokeColor="{StaticResource Border}"
+                    StrokeThickness="1"
+                    CornerRadius="8"
+                    Padding="12"
+                    Margin="0, 0, 6, 6">
+                <VerticalStackLayout>
+                    <Label Text="Usuarios"
+                           FontAttributes="Bold"
+                           FontSize="16"
+                           TextColor="{StaticResource PrimaryColor}" />
+                    <Label Text="Gestione usuarios del sistema"
+                           FontSize="12"
+                           TextColor="{StaticResource TextSecondary}" />
+                    <Button Text="Ver Usuarios"
+                            Clicked="OnUsersClicked"
+                            HorizontalOptions="Center"
+                            Margin="0, 8, 0, 0"
+                            Style="{StaticResource PrimaryButtonStyle}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Tarjeta 4: Estadísticas -->
+            <Border Grid.Row="1" Grid.Column="1"
+                    StrokeColor="{StaticResource Border}"
+                    StrokeThickness="1"
+                    CornerRadius="8"
+                    Padding="12"
+                    Margin="6, 0, 0, 0">
+                <VerticalStackLayout>
+                    <Label Text="Estadísticas"
+                           FontAttributes="Bold"
+                           FontSize="16"
+                           TextColor="{StaticResource PrimaryColor}" />
+                    <Label Text="Reportes y métricas"
+                           FontSize="12"
+                           TextColor="{StaticResource TextSecondary}" />
+                    <Button Text="Ver Reportes"
+                            Clicked="OnStatsClicked"
+                            HorizontalOptions="Center"
+                            Margin="0, 8, 0, 0"
+                            Style="{StaticResource PrimaryButtonStyle}" />
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+
+        <Label Text="© 2024 CODIX-LABELS JOGE"
+               FontSize="10"
+               TextColor="{StaticResource TextSecondary}"
+               HorizontalOptions="Center"
+               Margin="12, 20, 0, 0" />
+    </VerticalStackLayout>
+</ContentPage>

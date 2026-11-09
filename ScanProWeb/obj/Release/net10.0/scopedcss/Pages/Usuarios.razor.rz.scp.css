@@ -1,0 +1,29 @@
+[b-y8967g1lqv] tr {
+    height: auto;
+    min-height: 0;
+}
+
+[b-y8967g1lqv] tbody tr:not(:has(td:not(:empty))) {
+    display: none;
+}
+
+[b-y8967g1lqv] td:empty {
+    display: none;
+}
+[b-y8967g1lqv] .paginator {
+    margin-top: 0.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+[b-y8967g1lqv] .paginator button {
+    padding: 4px 10px;
+    border-radius: 4px;
+}
+
+[b-y8967g1lqv] .pagination-text {
+    font-weight: bold;
+    margin: 0 10px;
+}

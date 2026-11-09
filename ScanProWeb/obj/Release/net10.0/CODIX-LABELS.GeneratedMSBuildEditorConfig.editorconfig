@@ -1,0 +1,118 @@
+is_global = true
+build_property.EnableAotAnalyzer = 
+build_property.EnableSingleFileAnalyzer = 
+build_property.EnableTrimAnalyzer = false
+build_property.IncludeAllContentForSelfExtract = 
+build_property.VerifyReferenceTrimCompatibility = 
+build_property.VerifyReferenceAotCompatibility = 
+build_property.TargetFramework = net10.0
+build_property.TargetFrameworkIdentifier = .NETCoreApp
+build_property.TargetFrameworkVersion = v10.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = 
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = false
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property.EntryPointFilePath = 
+build_property._SupportedPlatformList = browser
+build_property.RootNamespace = ScanProWeb
+build_property.RootNamespace = ScanProWeb
+build_property.ProjectDir = C:\Users\User\OneDrive\Escritorio\CODIX-LABELS\ScanProWeb\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = false
+build_property.RazorLangVersion = 10.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = C:\Users\User\OneDrive\Escritorio\CODIX-LABELS\ScanProWeb
+build_property._RazorSourceGeneratorDebug = 
+build_property.EffectiveAnalysisLevelStyle = 10.0
+build_property.EnableCodeStyleSeverity = 
+
+[C:/Users/User/OneDrive/Escritorio/CODIX-LABELS/ScanProWeb/App.razor]
+build_metadata.AdditionalFiles.TargetPath = QXBwLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/User/OneDrive/Escritorio/CODIX-LABELS/ScanProWeb/Layout/EmptyLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = TGF5b3V0XEVtcHR5TGF5b3V0LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/User/OneDrive/Escritorio/CODIX-LABELS/ScanProWeb/Logout.razor]
+build_metadata.AdditionalFiles.TargetPath = TG9nb3V0LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/User/OneDrive/Escritorio/CODIX-LABELS/ScanProWeb/Pages/CategoryUnitManager.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ2F0ZWdvcnlVbml0TWFuYWdlci5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/User/OneDrive/Escritorio/CODIX-LABELS/ScanProWeb/Pages/Config.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ29uZmlnLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/User/OneDrive/Escritorio/CODIX-LABELS/ScanProWeb/Pages/Counter.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ291bnRlci5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/User/OneDrive/Escritorio/CODIX-LABELS/ScanProWeb/Pages/Etiquetas.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRXRpcXVldGFzLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/User/OneDrive/Escritorio/CODIX-LABELS/ScanProWeb/Pages/Home.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSG9tZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/User/OneDrive/Escritorio/CODIX-LABELS/ScanProWeb/Pages/Iconos.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSWNvbm9zLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/User/OneDrive/Escritorio/CODIX-LABELS/ScanProWeb/Pages/NotFound.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTm90Rm91bmQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/User/OneDrive/Escritorio/CODIX-LABELS/ScanProWeb/Pages/OrdenCompra/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcT3JkZW5Db21wcmFcSW5kZXgucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/User/OneDrive/Escritorio/CODIX-LABELS/ScanProWeb/Pages/OrdenCompra/Nueva.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcT3JkZW5Db21wcmFcTnVldmEucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/User/OneDrive/Escritorio/CODIX-LABELS/ScanProWeb/Pages/RedirectToLogin.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUmVkaXJlY3RUb0xvZ2luLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/User/OneDrive/Escritorio/CODIX-LABELS/ScanProWeb/Pages/Weather.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcV2VhdGhlci5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/User/OneDrive/Escritorio/CODIX-LABELS/ScanProWeb/_Imports.razor]
+build_metadata.AdditionalFiles.TargetPath = X0ltcG9ydHMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/User/OneDrive/Escritorio/CODIX-LABELS/ScanProWeb/Layout/MainLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = TGF5b3V0XE1haW5MYXlvdXQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-q7fwb7sqv6
+
+[C:/Users/User/OneDrive/Escritorio/CODIX-LABELS/ScanProWeb/Layout/NavMenu.razor]
+build_metadata.AdditionalFiles.TargetPath = TGF5b3V0XE5hdk1lbnUucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-2u2bu72uoh
+
+[C:/Users/User/OneDrive/Escritorio/CODIX-LABELS/ScanProWeb/Pages/ConfigPages/Enterprise.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ29uZmlnUGFnZXNcRW50ZXJwcmlzZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-dbo59ai71h
+
+[C:/Users/User/OneDrive/Escritorio/CODIX-LABELS/ScanProWeb/Pages/ConfigPages/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ29uZmlnUGFnZXNcSW5kZXgucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-ysfun48fti
+
+[C:/Users/User/OneDrive/Escritorio/CODIX-LABELS/ScanProWeb/Pages/Login.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTG9naW4ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-svjzjkg0l3
+
+[C:/Users/User/OneDrive/Escritorio/CODIX-LABELS/ScanProWeb/Pages/Productos.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUHJvZHVjdG9zLnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-dq4oa5bbkv
+
+[C:/Users/User/OneDrive/Escritorio/CODIX-LABELS/ScanProWeb/Pages/Usuarios.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVXN1YXJpb3MucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-y8967g1lqv

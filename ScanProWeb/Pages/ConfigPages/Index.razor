@@ -1,0 +1,502 @@
+@page "/configpages"
+@implements IDisposable
+@inject ApiConfigService Api
+@inject ApiEnterpriseService EnterpriseSvc
+@inject IJSRuntime JS
+@inject ToastService ToastSvc
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
+@using System.Globalization
+
+<PageTitle>Configuración</PageTitle>
+
+<h2><Icon Name="IconName.Gear" /> Configuración</h2>
+
+<div class="accordion mt-3" id="configAccordion">
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingCat">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCat" aria-expanded="true" aria-controls="collapseCat">
+                <Icon Name="IconName.Tags" Class="me-2" /> Categorías <span class="badge bg-secondary ms-2">@categorias.Count</span>
+            </button>
+        </h2>
+        <div id="collapseCat" class="accordion-collapse collapse show" aria-labelledby="headingCat" data-bs-parent="#configAccordion">
+            <div class="accordion-body">
+                <div class="d-flex gap-2 mb-2">
+                    <button class="btn btn-sm btn-primary" @onclick="OpenNewCategory"><Icon Name="IconName.PlusLg" /> Nueva</button>
+                    <div class="input-group input-group-sm">
+                        <input class="form-control" placeholder="Buscar categoría..." @bind="catSearch" @bind:event="oninput" @onkeydown="HandleCatSearchKey" />
+                        <button class="btn btn-outline-secondary" type="button"><Icon Name="IconName.Search" /></button>
+                    </div>
+                </div>
+                <table class="table table-striped">
+                    <thead><tr><th>Nombre</th><th>Descripción</th><th>Activo</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var c in PagedCategories)
+                        {
+                            <tr>
+                                <td>@c.Name</td>
+                                <td>@c.Description</td>
+                                <td>@(c.IsActive ? "Sí" : "No")</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditCategory(c)"><Icon Name="IconName.Pencil" /></button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteCategory(c)"><Icon Name="IconName.Trash" /></button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => pageCat = Math.Max(1, pageCat - 1)" disabled="@(pageCat <= 1)">Anterior</button>
+                    <span>Página @pageCat de @(TotalCatPages == 0 ? 1 : TotalCatPages) | <strong>Total: @FilteredCategories.Count() registros</strong></span>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => pageCat = Math.Min(Math.Max(1, TotalCatPages), pageCat + 1)" disabled="@(pageCat >= TotalCatPages || TotalCatPages == 0)">Siguiente</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingUnit">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseUnit" aria-expanded="false" aria-controls="collapseUnit">
+                <Icon Name="IconName.Rulers" Class="me-2" /> Unidades <span class="badge bg-secondary ms-2">@unidades.Count</span>
+            </button>
+        </h2>
+        <div id="collapseUnit" class="accordion-collapse collapse" aria-labelledby="headingUnit" data-bs-parent="#configAccordion">
+            <div class="accordion-body">
+                <div class="d-flex gap-2 mb-2">
+                    <button class="btn btn-sm btn-primary" @onclick="OpenNewUnit"><Icon Name="IconName.PlusLg" /> Nueva</button>
+                    <div class="input-group input-group-sm">
+                        <input class="form-control" placeholder="Buscar unidad..." @bind="unitSearch" @bind:event="oninput" @onkeydown="HandleUnitSearchKey" />
+                        <button class="btn btn-outline-secondary" type="button"><Icon Name="IconName.Search" /></button>
+                    </div>
+                </div>
+                <table class="table table-striped">
+                    <thead><tr><th>Nombre</th><th>Descripción</th><th>Activo</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var u in PagedUnits)
+                        {
+                            <tr>
+                                <td>@u.Name</td>
+                                <td>@u.Description</td>
+                                <td>@(u.IsActive ? "Sí" : "No")</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditUnit(u)"><Icon Name="IconName.Pencil" /></button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteUnit(u)"><Icon Name="IconName.Trash" /></button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => pageUnit = Math.Max(1, pageUnit - 1)" disabled="@(pageUnit <= 1)">Anterior</button>
+                    <span>Página @pageUnit de @(TotalUnitPages == 0 ? 1 : TotalUnitPages) | <strong>Total: @FilteredUnits.Count() registros</strong></span>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => pageUnit = Math.Min(Math.Max(1, TotalUnitPages), pageUnit + 1)" disabled="@(pageUnit >= TotalUnitPages || TotalUnitPages == 0)">Siguiente</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingEmp">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEmp" aria-expanded="false" aria-controls="collapseEmp">
+                <Icon Name="IconName.Building" Class="me-2" /> Empresa
+                @if (enterprise.enterprise_id > 0)
+                {
+                    <span class="badge bg-success ms-2">Configurada</span>
+                }
+                else
+                {
+                    <span class="badge bg-warning text-dark ms-2">Pendiente</span>
+                }
+            </button>
+        </h2>
+        <div id="collapseEmp" class="accordion-collapse collapse" aria-labelledby="headingEmp" data-bs-parent="#configAccordion">
+            <div class="accordion-body">
+                <p class="text-muted small mb-3">Datos de la empresa guardados en base de datos. Puedes editarlos en cualquier momento (por ejemplo, el nombre de la empresa puede usarse en formatos de etiquetas).</p>
+
+                @if (!empLoaded)
+                {
+                    <div class="d-flex align-items-center gap-2 text-muted">
+                        <div class="spinner-border spinner-border-sm" role="status"></div>
+                        <span>Cargando datos de empresa...</span>
+                    </div>
+                }
+                else
+                {
+                    @if (!string.IsNullOrEmpty(empError))
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show py-2" role="alert">
+                            @empError
+                            <button type="button" class="btn-close" @onclick="() => empError = string.Empty" aria-label="Close"></button>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(empSuccess))
+                    {
+                        <div class="alert alert-success alert-dismissible fade show py-2" role="alert">
+                            @empSuccess
+                            <button type="button" class="btn-close" @onclick="() => empSuccess = string.Empty" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    <EditForm Model="@enterprise" OnValidSubmit="SaveEnterprise">
+                        <DataAnnotationsValidator />
+                        <div class="row g-3">
+                            <div class="col-lg-7">
+                                <div class="mb-2 d-flex align-items-center gap-3">
+                                    <div id="dropZoneLogo"
+                                         class="enterprise-logo-box @(isLogoDragOver ? "dragover" : "")"
+                                         title="Arrastra y suelta tu logo aquí"
+                                         @onclick="OpenLogoFileDialog"
+                                         @ondragover:preventDefault
+                                         @ondragenter="() => isLogoDragOver = true"
+                                         @ondragleave="() => isLogoDragOver = false"
+                                         @ondrop:preventDefault>
+                                        @if (logoPreview == null)
+                                        {
+                                            <span class="logo-drop-hint">
+                                                <Icon Name="IconName.Image" Size="IconSize.x4" />
+                                                <small>Arrastra y suelta</small>
+                                            </span>
+                                        }
+                                        @if (logoPreview != null)
+                                        {
+                                            <img src="@logoPreview" alt="Logo" class="enterprise-logo-img" />
+                                        }
+                                    </div>
+                                    <div>
+                                        <label class="form-label mb-0"><strong>Logo de la empresa</strong></label>
+                                        <InputFile OnChange="OnLogoSelected" accept="image/*" hidden />
+                                        <small class="text-muted d-block">Arrastra y suelta la imagen o haz clic para seleccionarla.</small>
+                                    </div>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Código empresa</label>
+                                        <InputText @bind-Value="enterprise.Codigo_Empresa" class="form-control form-control-sm" />
+                                    </div>
+                                    <div class="col-md-8">
+                                        <label class="form-label">Nombre empresa <span class="text-danger">*</span></label>
+                                        <InputText @bind-Value="enterprise.Nombre_Empresa" class="form-control form-control-sm" />
+                                        <ValidationMessage For="() => enterprise.Nombre_Empresa" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Tipo empresa</label>
+                                        <InputText @bind-Value="enterprise.Tipo_Empresa" class="form-control form-control-sm" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Registro fiscal / NIT</label>
+                                        <InputText @bind-Value="enterprise.Registro_Fiscal" class="form-control form-control-sm" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Persona de contacto</label>
+                                        <InputText @bind-Value="enterprise.Persona_Contacto" class="form-control form-control-sm" />
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Dirección</label>
+                                        <InputText @bind-Value="enterprise.Direccion" class="form-control form-control-sm" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Teléfono</label>
+                                        <InputText @bind-Value="enterprise.Telefono" class="form-control form-control-sm" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Correo</label>
+                                        <InputText @bind-Value="enterprise.Correo" class="form-control form-control-sm" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-5">
+                                <div class="card h-100">
+                                    <div class="card-header py-1"><strong>Ubicación</strong></div>
+                                    <div class="card-body py-2">
+                                        <div class="row g-2 mb-2">
+                                            <div class="col-6">
+                                                <label class="form-label small mb-1">Latitud</label>
+                                                <InputNumber class="form-control form-control-sm" @bind-Value="enterprise.Latitud" />
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label small mb-1">Longitud</label>
+                                                <InputNumber class="form-control form-control-sm" @bind-Value="enterprise.Longitud" />
+                                            </div>
+                                        </div>
+                                        @if (HasValidLocation)
+                                        {
+                                            <iframe src="@MapUrl" width="100%" height="220" style="border:0;border-radius:8px;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                                        }
+                                        else
+                                        {
+                                            <div style="width:100%;height:220px;border:2px dashed #ccc;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#999;">
+                                                <Icon Name="IconName.Map" Size="IconSize.x4" />
+                                                <small>El mapa de tu ubicación se mostrará aquí.</small>
+                                            </div>
+                                        }
+                                        <div class="mt-2 d-flex gap-2 flex-wrap">
+                                            <button type="button" class="btn btn-sm btn-primary" @onclick="UseMyLocation"><Icon Name="IconName.GeoAlt" /> Usar mi ubicación</button>
+                                            <a href="@MapLink" target="_blank" class="btn btn-sm btn-outline-primary"><Icon Name="IconName.Map" /> Abrir en Google Maps</a>
+                                        </div>
+                                        <small class="text-muted d-block mt-1">Edita la latitud y longitud para cambiar la ubicación del mapa.</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3 d-flex gap-2 align-items-center">
+                            <button type="submit" class="btn btn-primary btn-sm" disabled="@empSaving">
+                                @if (empSaving)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                    <span>Guardando...</span>
+                                }
+                                else
+                                {
+                                    <Icon Name="IconName.FloppyFill" Class="me-1" />
+                                    <span>Guardar empresa</span>
+                                }
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="ReloadEnterprise" disabled="@empSaving">
+                                <Icon Name="IconName.ArrowClockwise" Class="me-1" /> Recargar
+                            </button>
+                            @if (enterprise.enterprise_id > 0)
+                            {
+                                <span class="text-muted small">ID: @enterprise.enterprise_id</span>
+                            }
+                        </div>
+                    </EditForm>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<Modal @ref="catModal" Title="@(editingCategoryId == 0 ? "Nueva categoría" : "Editar categoría")">
+    <BodyTemplate>
+        <div class="mb-2"><label>Nombre</label><input class="form-control" @bind="editCategory.Name" /></div>
+        <div class="mb-2"><label>Descripción</label><input class="form-control" @bind="editCategory.Description" /></div>
+        <div class="mb-2 form-check">
+            <input type="checkbox" class="form-check-input" @bind="editCategory.IsActive" id="catActivo" />
+            <label class="form-check-label" for="catActivo">Activo</label>
+        </div>
+    </BodyTemplate>
+    <FooterTemplate>
+        <button class="btn btn-secondary" @onclick="async () => { if (catModal is not null) await catModal.HideAsync(); }"><Icon Name="IconName.XCircle" /> Cancelar</button>
+        <button class="btn btn-primary" @onclick="SaveCategory"><Icon Name="IconName.FloppyFill" /> Guardar</button>
+    </FooterTemplate>
+</Modal>
+
+<Modal @ref="unitModal" Title="@(editingUnitId == 0 ? "Nueva unidad" : "Editar unidad")">
+    <BodyTemplate>
+        <div class="mb-2"><label>Nombre</label><input class="form-control" @bind="editUnit.Name" /></div>
+        <div class="mb-2"><label>Descripción</label><input class="form-control" @bind="editUnit.Description" /></div>
+        <div class="mb-2 form-check">
+            <input type="checkbox" class="form-check-input" @bind="editUnit.IsActive" id="unitActivo" />
+            <label class="form-check-label" for="unitActivo">Activo</label>
+        </div>
+    </BodyTemplate>
+    <FooterTemplate>
+        <button class="btn btn-secondary" @onclick="async () => { if (unitModal is not null) await unitModal.HideAsync(); }"><Icon Name="IconName.XCircle" /> Cancelar</button>
+        <button class="btn btn-primary" @onclick="SaveUnit"><Icon Name="IconName.FloppyFill" /> Guardar</button>
+    </FooterTemplate>
+</Modal>
+
+@code {
+    private List<ApiConfigService.CategoryDto> categorias = new();
+    private List<ApiConfigService.ProductUnitDto> unidades = new();
+    private string catSearch = "";
+    private IEnumerable<ApiConfigService.CategoryDto> FilteredCategories => string.IsNullOrWhiteSpace(catSearch) ? categorias : categorias.Where(c => c.Name.Contains(catSearch, StringComparison.OrdinalIgnoreCase) || (c.Description ?? "").Contains(catSearch, StringComparison.OrdinalIgnoreCase));
+    private string unitSearch = "";
+    private int pageSize = 5;
+    private int pageCat = 1;
+    private int pageUnit = 1;
+    private IEnumerable<ApiConfigService.CategoryDto> PagedCategories => FilteredCategories.Skip((pageCat - 1) * pageSize).Take(pageSize);
+    private IEnumerable<ApiConfigService.ProductUnitDto> PagedUnits => FilteredUnits.Skip((pageUnit - 1) * pageSize).Take(pageSize);
+    private int TotalCatPages => (int)Math.Ceiling(FilteredCategories.Count() / (double)pageSize);
+    private int TotalUnitPages => (int)Math.Ceiling(FilteredUnits.Count() / (double)pageSize);
+    private IEnumerable<ApiConfigService.ProductUnitDto> FilteredUnits => string.IsNullOrWhiteSpace(unitSearch) ? unidades : unidades.Where(u => u.Name.Contains(unitSearch, StringComparison.OrdinalIgnoreCase) || (u.Description ?? "").Contains(unitSearch, StringComparison.OrdinalIgnoreCase));
+    private Modal? catModal = null;
+    private Modal? unitModal = null;
+    private ApiConfigService.CategoryDto editCategory = new();
+    private ApiConfigService.ProductUnitDto editUnit = new();
+    private int editingCategoryId;
+    private int editingUnitId;
+
+    private ApiEnterpriseService.Enterprise enterprise = new();
+    private bool empLoaded;
+    private bool empSaving;
+    private string? empError;
+    private string? empSuccess;
+    private IDisposable? dotNetRef;
+    private string? logoPreview;
+    private bool isLogoDragOver;
+    private bool logoDropReady;
+
+    private bool HasValidLocation =>
+        Math.Abs(enterprise.Latitud) > 0 || Math.Abs(enterprise.Longitud) > 0;
+
+    private string MapUrl =>
+        $"https://maps.google.com/maps?q={enterprise.Latitud.ToString(CultureInfo.InvariantCulture)},{enterprise.Longitud.ToString(CultureInfo.InvariantCulture)}&z=15&output=embed";
+
+    private string MapLink =>
+        $"https://www.google.com/maps?q={enterprise.Latitud.ToString(CultureInfo.InvariantCulture)},{enterprise.Longitud.ToString(CultureInfo.InvariantCulture)}";
+
+    private void HandleCatSearchKey(KeyboardEventArgs e) { if (e.Key == "Enter") StateHasChanged(); }
+    private void HandleUnitSearchKey(KeyboardEventArgs e) { if (e.Key == "Enter") StateHasChanged(); }
+
+    protected override async Task OnInitializedAsync()
+    {
+        categorias = await Api.GetCategoriesAsync() ?? new();
+        unidades = await Api.GetProductUnitsAsync() ?? new();
+        await LoadEnterpriseAsync();
+    }
+
+    private async Task LoadEnterpriseAsync()
+    {
+        empLoaded = false;
+        empError = null;
+        empSuccess = null;
+        try
+        {
+            var (data, err) = await EnterpriseSvc.GetEnterpriseWithDetailsAsync();
+            if (!string.IsNullOrWhiteSpace(err))
+                empError = $"No se pudo cargar la empresa: {err}";
+            enterprise = data ?? new();
+            SetLogoPreviewFromModel();
+            logoDropReady = false;
+        }
+        catch (Exception ex)
+        {
+            empError = $"Error al cargar empresa: {ex.Message}";
+            enterprise = new();
+        }
+        finally
+        {
+            empLoaded = true;
+        }
+    }
+
+    private async Task ReloadEnterprise() => await LoadEnterpriseAsync();
+
+    private async Task SaveEnterprise()
+    {
+        empSaving = true;
+        empError = null;
+        empSuccess = null;
+        try
+        {
+            var res = enterprise.enterprise_id > 0
+                ? await EnterpriseSvc.UpdateEnterpriseWithDetailsAsync(enterprise.enterprise_id, enterprise)
+                : await EnterpriseSvc.CreateEnterpriseWithDetailsAsync(enterprise);
+
+            if (res.Success)
+            {
+                empSuccess = "Empresa guardada correctamente en la base de datos.";
+                var refreshed = await EnterpriseSvc.GetEnterpriseAsync();
+                if (refreshed is not null) enterprise = refreshed;
+                SetLogoPreviewFromModel();
+            }
+            else
+            {
+                empError = string.IsNullOrWhiteSpace(res.Error)
+                    ? "No se pudo guardar la empresa. Verifica que la API esté disponible y que tengas permisos de administrador."
+                    : $"Error al guardar: {res.Error}";
+            }
+        }
+        catch (Exception ex)
+        {
+            empError = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            empSaving = false;
+        }
+    }
+
+    private async Task OpenNewCategory() { editCategory = new(); editingCategoryId = 0; if (catModal is not null) await catModal.ShowAsync(); }
+    private async Task EditCategory(ApiConfigService.CategoryDto c) { editCategory = new() { Id = c.Id, Name = c.Name, Description = c.Description, IsActive = c.IsActive }; editingCategoryId = c.Id; if (catModal is not null) await catModal.ShowAsync(); }
+    private async Task SaveCategory() { if (editingCategoryId == 0) await Api.CreateCategoryAsync(editCategory); else await Api.UpdateCategoryAsync(editingCategoryId, editCategory); categorias = await Api.GetCategoriesAsync() ?? new(); if (catModal is not null) await catModal.HideAsync(); }
+    private async Task DeleteCategory(ApiConfigService.CategoryDto c) { await Api.DeleteCategoryAsync(c.Id); categorias = await Api.GetCategoriesAsync() ?? new(); }
+
+    private async Task OpenNewUnit() { editUnit = new(); editingUnitId = 0; if (unitModal is not null) await unitModal.ShowAsync(); }
+    private async Task EditUnit(ApiConfigService.ProductUnitDto u) { editUnit = new() { Id = u.Id, Name = u.Name, Description = u.Description, IsActive = u.IsActive }; editingUnitId = u.Id; if (unitModal is not null) await unitModal.ShowAsync(); }
+    private async Task SaveUnit() { if (editingUnitId == 0) await Api.CreateProductUnitAsync(editUnit); else await Api.UpdateProductUnitAsync(editingUnitId, editUnit); unidades = await Api.GetProductUnitsAsync() ?? new(); if (unitModal is not null) await unitModal.HideAsync(); }
+    private async Task DeleteUnit(ApiConfigService.ProductUnitDto u) { await Api.DeleteProductUnitAsync(u.Id); unidades = await Api.GetProductUnitsAsync() ?? new(); }
+
+    private void UseMyLocation()
+    {
+        dotNetRef ??= DotNetObjectReference.Create(this);
+        JS.InvokeVoidAsync("getCurrentLocation", dotNetRef);
+    }
+
+    [JSInvokable]
+    public void OnLocationReceived(double latitud, double longitud)
+    {
+        enterprise.Latitud = latitud;
+        enterprise.Longitud = longitud;
+        StateHasChanged();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (empLoaded && !logoDropReady)
+        {
+            logoDropReady = true;
+            dotNetRef ??= DotNetObjectReference.Create(this);
+            JS.InvokeVoidAsync("initLogoDropZone", dotNetRef);
+        }
+    }
+
+    private void SetLogoPreviewFromModel()
+    {
+        if (enterprise.Logo is { Length: > 0 })
+            logoPreview = $"data:{enterprise.LogoContentType};base64,{Convert.ToBase64String(enterprise.Logo)}";
+        else
+            logoPreview = null;
+    }
+
+    private void OpenLogoFileDialog()
+    {
+        JS.InvokeVoidAsync("eval", "document.querySelector('#dropZoneLogo input[type=file]')?.click()");
+    }
+
+    private async Task OnLogoSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        using var stream = file.OpenReadStream(maxAllowedSize: 5_000_000);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+
+        enterprise.Logo = ms.ToArray();
+        enterprise.LogoContentType = file.ContentType ?? "image/png";
+        SetLogoPreviewFromModel();
+    }
+
+    [JSInvokable]
+    public void OnLogoDropped(string fileName, string contentType, string base64Data)
+    {
+        isLogoDragOver = false;
+        try
+        {
+            enterprise.Logo = Convert.FromBase64String(base64Data);
+            enterprise.LogoContentType = string.IsNullOrEmpty(contentType) ? "image/png" : contentType;
+            SetLogoPreviewFromModel();
+        }
+        catch (Exception ex)
+        {
+            empError = $"Error al leer el logo: {ex.Message}";
+        }
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnInvalidFileDropped()
+    {
+        isLogoDragOver = false;
+        empError = "El archivo debe ser una imagen.";
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        (dotNetRef as IDisposable)?.Dispose();
+        dotNetRef = null;
+    }
+}

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CODIXLABELS</title>
+    <base href="/" />
+    <link href="_framework/dotnet.fld32luwsk.js" rel="preload" as="script" fetchpriority="high" crossorigin="anonymous" integrity="sha256-bQJTj7s0yCfv394mdG6fOHutUHUmjVVOeKteQMEIVdw=" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link href="_content/Blazor.Bootstrap/blazor.bootstrap.css" rel="stylesheet" />
+    <link rel="stylesheet" href="css/fonts.css" />
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="css/theme.css" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link href="ScanProWeb.styles.css" rel="stylesheet" />
+    <script type="importmap">{
+  "imports": {
+    "./_content/Blazor.Bootstrap/blazor.bootstrap.js": "./_content/Blazor.Bootstrap/blazor.bootstrap.jbj5vv28m9.js",
+    "./_content/Blazor.Bootstrap/blazor.bootstrap.pdf.js": "./_content/Blazor.Bootstrap/blazor.bootstrap.pdf.30xw9wihir.js",
+    "./_content/Blazor.Bootstrap/blazor.bootstrap.rich-text-editor.js": "./_content/Blazor.Bootstrap/blazor.bootstrap.rich-text-editor.f6r6spnkpf.js",
+    "./_content/Blazor.Bootstrap/blazor.bootstrap.sortable-list.js": "./_content/Blazor.Bootstrap/blazor.bootstrap.sortable-list.ezlxc6gzv3.js",
+    "./_content/Blazor.Bootstrap/blazor.bootstrap.theme-switcher.js": "./_content/Blazor.Bootstrap/blazor.bootstrap.theme-switcher.pisakkcwob.js",
+    "./_content/Blazor.Bootstrap/pdfjs-4.0.379.min.js": "./_content/Blazor.Bootstrap/pdfjs-4.0.379.min.j8zp7bt7w3.js",
+    "./_content/Blazor.Bootstrap/pdfjs-4.0.379.worker.min.js": "./_content/Blazor.Bootstrap/pdfjs-4.0.379.worker.min.79hai7knhw.js",
+    "./_content/Microsoft.AspNetCore.Components.QuickGrid/QuickGrid.razor.js": "./_content/Microsoft.AspNetCore.Components.QuickGrid/QuickGrid.eu7w3d5g1a.razor.js",
+    "./_framework/blazor.webassembly.js": "./_framework/blazor.webassembly.w3qd1tpl0e.js",
+    "./_framework/dotnet.js": "./_framework/dotnet.fld32luwsk.js",
+    "./_framework/dotnet.native.js": "./_framework/dotnet.native.bjoj0wmylw.js",
+    "./_framework/dotnet.runtime.js": "./_framework/dotnet.runtime.5nc8i5dl74.js",
+    "./lib/bootstrap/dist/js/bootstrap.bundle.js": "./lib/bootstrap/dist/js/bootstrap.bundle.iezv3enqso.js",
+    "./lib/bootstrap/dist/js/bootstrap.bundle.min.js": "./lib/bootstrap/dist/js/bootstrap.bundle.min.493y06b0oq.js",
+    "./lib/bootstrap/dist/js/bootstrap.js": "./lib/bootstrap/dist/js/bootstrap.ckhfolapim.js",
+    "./lib/bootstrap/dist/js/bootstrap.esm.js": "./lib/bootstrap/dist/js/bootstrap.esm.311decq3hv.js",
+    "./lib/bootstrap/dist/js/bootstrap.esm.min.js": "./lib/bootstrap/dist/js/bootstrap.esm.min.jj8uyg4cgr.js",
+    "./lib/bootstrap/dist/js/bootstrap.min.js": "./lib/bootstrap/dist/js/bootstrap.min.63fj8s7r0e.js"
+  },
+  "scopes": {},
+  "integrity": {
+    "./_content/Blazor.Bootstrap/blazor.bootstrap.jbj5vv28m9.js": "sha256-8ZMtMQ6Yg5f/7/kANvL9btvOUa/q5HHk1qvhTuXXsM0=",
+    "./_content/Blazor.Bootstrap/blazor.bootstrap.js": "sha256-8ZMtMQ6Yg5f/7/kANvL9btvOUa/q5HHk1qvhTuXXsM0=",
+    "./_content/Blazor.Bootstrap/blazor.bootstrap.pdf.30xw9wihir.js": "sha256-7Qf+E+BnfULrJTdSB8Mrg7d5yw/zSZfFE9xdezrU+pI=",
+    "./_content/Blazor.Bootstrap/blazor.bootstrap.pdf.js": "sha256-7Qf+E+BnfULrJTdSB8Mrg7d5yw/zSZfFE9xdezrU+pI=",
+    "./_content/Blazor.Bootstrap/blazor.bootstrap.rich-text-editor.f6r6spnkpf.js": "sha256-F9+o1lLWqlVIg4ldu8nYzSmqqIYgoeVCTRRrSGWsQX8=",
+    "./_content/Blazor.Bootstrap/blazor.bootstrap.rich-text-editor.js": "sha256-F9+o1lLWqlVIg4ldu8nYzSmqqIYgoeVCTRRrSGWsQX8=",
+    "./_content/Blazor.Bootstrap/blazor.bootstrap.sortable-list.ezlxc6gzv3.js": "sha256-du71NM6e2+m9l81ldV+Gbr74ER7Xx1GnJFg+rIY6OQU=",
+    "./_content/Blazor.Bootstrap/blazor.bootstrap.sortable-list.js": "sha256-du71NM6e2+m9l81ldV+Gbr74ER7Xx1GnJFg+rIY6OQU=",
+    "./_content/Blazor.Bootstrap/blazor.bootstrap.theme-switcher.js": "sha256-Hy2y6B5ohWPnmWg4c52+QUuZGTw8r09KtWKcaGiaa/k=",
+    "./_content/Blazor.Bootstrap/blazor.bootstrap.theme-switcher.pisakkcwob.js": "sha256-Hy2y6B5ohWPnmWg4c52+QUuZGTw8r09KtWKcaGiaa/k=",
+    "./_content/Blazor.Bootstrap/pdfjs-4.0.379.min.j8zp7bt7w3.js": "sha256-XX7we2CiSWzj3rsNtKFCod90LBYAJ3bo8rmu4EuN7SQ=",
+    "./_content/Blazor.Bootstrap/pdfjs-4.0.379.min.js": "sha256-XX7we2CiSWzj3rsNtKFCod90LBYAJ3bo8rmu4EuN7SQ=",
+    "./_content/Blazor.Bootstrap/pdfjs-4.0.379.worker.min.79hai7knhw.js": "sha256-JbwqIn9Fic7JuWyTXuNnAA1T0dYQ2tkTi9HhrSltUtQ=",
+    "./_content/Blazor.Bootstrap/pdfjs-4.0.379.worker.min.js": "sha256-JbwqIn9Fic7JuWyTXuNnAA1T0dYQ2tkTi9HhrSltUtQ=",
+    "./_content/Microsoft.AspNetCore.Components.QuickGrid/QuickGrid.eu7w3d5g1a.razor.js": "sha256-tnamWuQ2F5I2J8hbtBt4/9i8Mb2y2o+9Tepj5tUrSdU=",
+    "./_content/Microsoft.AspNetCore.Components.QuickGrid/QuickGrid.razor.js": "sha256-tnamWuQ2F5I2J8hbtBt4/9i8Mb2y2o+9Tepj5tUrSdU=",
+    "./_framework/blazor.webassembly.js": "sha256-lDXsDYFgm62F+YUvxES7IOTCXYpiHpU3uR45YdC6mq4=",
+    "./_framework/blazor.webassembly.w3qd1tpl0e.js": "sha256-lDXsDYFgm62F+YUvxES7IOTCXYpiHpU3uR45YdC6mq4=",
+    "./_framework/dotnet.fld32luwsk.js": "sha256-bQJTj7s0yCfv394mdG6fOHutUHUmjVVOeKteQMEIVdw=",
+    "./_framework/dotnet.js": "sha256-bQJTj7s0yCfv394mdG6fOHutUHUmjVVOeKteQMEIVdw=",
+    "./_framework/dotnet.native.bjoj0wmylw.js": "sha256-CZ0IVZkLTIvee7n1yVvOitlJWNdj/YjaFgpMgliIM64=",
+    "./_framework/dotnet.native.js": "sha256-CZ0IVZkLTIvee7n1yVvOitlJWNdj/YjaFgpMgliIM64=",
+    "./_framework/dotnet.runtime.5nc8i5dl74.js": "sha256-/3dBg9sj1yLD3h0PDMHnNUXWs/2zWwIMEzom1Xz3Q40=",
+    "./_framework/dotnet.runtime.js": "sha256-/3dBg9sj1yLD3h0PDMHnNUXWs/2zWwIMEzom1Xz3Q40=",
+    "./lib/bootstrap/dist/js/bootstrap.bundle.iezv3enqso.js": "sha256-BnC+WHD8dov6lySmPw0oZRVUS1Bu/GfvF82iqXMsAEU=",
+    "./lib/bootstrap/dist/js/bootstrap.bundle.js": "sha256-BnC+WHD8dov6lySmPw0oZRVUS1Bu/GfvF82iqXMsAEU=",
+    "./lib/bootstrap/dist/js/bootstrap.bundle.min.493y06b0oq.js": "sha256-CDOy6cOibCWEdsRiZuaHf8dSGGJRYuBGC+mjoJimHGw=",
+    "./lib/bootstrap/dist/js/bootstrap.bundle.min.js": "sha256-CDOy6cOibCWEdsRiZuaHf8dSGGJRYuBGC+mjoJimHGw=",
+    "./lib/bootstrap/dist/js/bootstrap.ckhfolapim.js": "sha256-rHKWZnCE7CxdQ8ySmoA0ZHDY9bSSrAYWLxRe8UPZdjY=",
+    "./lib/bootstrap/dist/js/bootstrap.esm.311decq3hv.js": "sha256-idtgIAYz2ciWaDrW3/eaOIROimwN+tKGplS2ywZmQv0=",
+    "./lib/bootstrap/dist/js/bootstrap.esm.js": "sha256-idtgIAYz2ciWaDrW3/eaOIROimwN+tKGplS2ywZmQv0=",
+    "./lib/bootstrap/dist/js/bootstrap.esm.min.jj8uyg4cgr.js": "sha256-QZdFT1ZNdly4rmgUBtXmXFS9BU1FTa+sPe6h794sFRQ=",
+    "./lib/bootstrap/dist/js/bootstrap.esm.min.js": "sha256-QZdFT1ZNdly4rmgUBtXmXFS9BU1FTa+sPe6h794sFRQ=",
+    "./lib/bootstrap/dist/js/bootstrap.js": "sha256-rHKWZnCE7CxdQ8ySmoA0ZHDY9bSSrAYWLxRe8UPZdjY=",
+    "./lib/bootstrap/dist/js/bootstrap.min.63fj8s7r0e.js": "sha256-3gQJhtmj7YnV1fmtbVcnAV6eI4ws0Tr48bVZCThtCGQ=",
+    "./lib/bootstrap/dist/js/bootstrap.min.js": "sha256-3gQJhtmj7YnV1fmtbVcnAV6eI4ws0Tr48bVZCThtCGQ="
+  }
+}</script>
+</head>
+<body>
+    <div id="app">
+        <svg class="loading-progress">
+            <circle r="40%" cx="50%" cy="50%" />
+            <circle r="40%" cx="50%" cy="50%" />
+        </svg>
+        <div class="loading-progress-text"></div>
+    </div>
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="." class="reload">Reload</a>
+        <span class="dismiss">🗙</span>
+    </div>
+    <script src="_framework/blazor.webassembly.w3qd1tpl0e.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q" crossorigin="anonymous"></script>
+    <script src="_content/Blazor.Bootstrap/blazor.bootstrap.js"></script>
+    <script>
+        window.initLogoDropZone = (dotNetRef) => {
+            const zone = document.getElementById('dropZoneLogo');
+            if (!zone) return;
+
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                zone.classList.add('dragover');
+            });
+
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('dragover');
+            });
+
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                zone.classList.remove('dragover');
+
+                const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+                if (!file) return;
+
+                if (!/^image\//i.test(file.type)) {
+                    dotNetRef.invokeMethodAsync('OnInvalidFileDropped');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const result = ev.target.result || '';
+                    const base64 = result.indexOf(',') >= 0 ? result.split(',')[1] : result;
+                    dotNetRef.invokeMethodAsync('OnLogoDropped', file.name, file.type || 'image/png', base64);
+                };
+                reader.readAsDataURL(file);
+            });
+        };
+
+        window.getCurrentLocation = (dotNetRef) => {
+            if (!navigator.geolocation) {
+                alert('Tu navegador no soporta geolocalización.');
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    dotNetRef.invokeMethodAsync('OnLocationReceived', position.coords.latitude, position.coords.longitude);
+                },
+                (error) => {
+                    alert('No se pudo obtener la ubicación: ' + error.message);
+                }
+            );
+        };
+
+        window.downloadFile = (filename, base64) => {
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = "data:application/octet-stream;base64," + base64;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+    </script>
+</body>
+</html>

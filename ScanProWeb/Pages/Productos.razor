@@ -1,0 +1,1670 @@
+@page "/productos"
+@inject ApiProductService Api
+@inject ApiConfigService ConfigApi
+@inject IJSRuntime JS
+@inject ToastService ToastSvc
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using Microsoft.AspNetCore.Components.Forms
+@using ClosedXML.Excel
+
+<PageTitle>Productos</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0 d-flex align-items-center gap-2"><Icon Name="IconName.Box" Size="IconSize.x2" /> Productos
+        <div class="dropdown">
+            <button class="btn btn-sm btn-outline-secondary rounded-pill px-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Vista de productos"><Icon Name="IconName.ThreeDotsVertical" /></button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><button class="dropdown-item @(productViewMode == "grid" ? "active" : "")" type="button" @onclick='() => productViewMode = "grid"'><Icon Name="IconName.Grid3X3GapFill" /> Vista Grid</button></li>
+                <li><button class="dropdown-item @(productViewMode == "list" ? "active" : "")" type="button" @onclick='() => productViewMode = "list"'><Icon Name="IconName.List" /> Vista Lista</button></li>
+            </ul>
+        </div>
+    </h2>
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary" type="button" @onclick="OpenNew">
+            <Icon Name="IconName.PlusLg" /> Nuevo
+        </button>
+        <button class="btn btn-outline-danger" type="button" @onclick="DeleteSelectedProduct" disabled="@(selectedProduct is null)">
+            <Icon Name="IconName.Trash" /> Eliminar
+        </button>
+        <button class="btn btn-success" type="button" @onclick="ExportToExcel">
+            <Icon Name="IconName.FileEarmarkExcel" /> Exportar
+        </button>
+        <button class="btn btn-outline-info" type="button" @onclick="OpenProductReport">
+            <Icon Name="IconName.BarChartFill" /> Reporte
+        </button>
+    </div>
+</div>
+
+<div class="d-flex gap-3">
+    <div style="flex: 0 0 calc(30% - 8px); min-width: 0;">
+        <div class="card h-100">
+            <div class="card-header">
+                <strong><Icon Name="IconName.Search" /> Búsqueda</strong>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold" for="buscadorProductos">Buscador</label>
+                    <input id="buscadorProductos" class="form-control" type="text" value="@searchText" @oninput="OnSearchTextChanged" placeholder="Buscar por ID, código o nombre" />
+                </div>
+                <div class="mb-3 d-flex align-items-center gap-3 flex-wrap">
+                    <label class="form-check mb-0">
+                        <input class="form-check-input" type="radio" name="filtroTipo" checked="@(filtroTipo == "todos")" @onchange='() => OnFiltroTipoChanged("todos")' />
+                        <span class="form-check-label">Todos</span>
+                    </label>
+                    <label class="form-check mb-0">
+                        <input class="form-check-input" type="radio" name="filtroTipo" checked="@(filtroTipo == "categoria")" @onchange='() => OnFiltroTipoChanged("categoria")' />
+                        <span class="form-check-label">Categoría</span>
+                    </label>
+                    <label class="form-check mb-0">
+                        <input class="form-check-input" type="radio" name="filtroTipo" checked="@(filtroTipo == "unidad")" @onchange='() => OnFiltroTipoChanged("unidad")' />
+                        <span class="form-check-label">Unidad</span>
+                    </label>
+                    <label class="form-check mb-0">
+                        <input class="form-check-input" type="radio" name="filtroTipo" checked="@(filtroTipo == "marca")" @onchange='() => OnFiltroTipoChanged("marca")' />
+                        <span class="form-check-label">Marca</span>
+                    </label>
+                </div>
+
+                @if (products is null)
+                {
+                    <p class="mb-0 text-muted">Cargando...</p>
+                }
+                else if (productsFiltered.Count() == 0)
+                {
+                    <p class="mb-0 text-muted">Sin resultados para el filtro actual.</p>
+                }
+                else
+                {
+                    @if (productViewMode == "list")
+                    {
+                        <div class="productos-list" style="max-height: 600px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 6px; margin-top: 4px; background:#fff;">
+                            @foreach (var p in productsFiltered)
+                            {
+                                var item = p;
+                                var isSel = selectedProduct is not null && p.Product_id == selectedProduct.Product_id;
+                                <div class="producto-list-item @(isSel ? "selected" : "")" role="button" @onclick="() => SelectProduct(item)">
+                                    <div class="flex-grow-1 min-w-0">
+                                        <div class="fw-semibold text-truncate">@p.Product_Name</div>
+                                        <small class="text-muted">ID @p.Product_id · @p.Product_Type</small>
+                                    </div>
+                                    <span class="badge bg-light text-dark border">@p.Stock Ex.</span>
+                                    <button class="btn btn-sm btn-link p-1 text-dark fw-bold" type="button" title="Imprimir etiqueta" @onclick:stopPropagation="true" @onclick="() => OpenLabelPrint(item)"><Icon Name="IconName.UpcScan" /></button>
+                                </div>
+                            }
+                        </div>
+                        <div class="form-text mt-2">Haz clic en un producto para ver el detalle en el tabpage. Vista lista.</div>
+                    }
+                    else
+                    {
+                        <div class="productos-grid" style="max-height: 600px; overflow-y: auto; overflow-x: hidden; border: 1px solid #dee2e6; border-radius: 6px; margin-top: 4px;">
+                            <QuickGrid Items="productsFiltered.AsQueryable()" Class="table table-striped table-sm mb-0">
+                                <TemplateColumn Title="It." Class="col-id">
+                                    @{
+                                        var list = productsFiltered as IList<ApiProductService.Product> ?? productsFiltered.ToList();
+                                        var idx = list.IndexOf(context);
+                                        var it = idx >= 0 ? list.Count - idx : 0;
+                                    }
+                                    @it
+                                </TemplateColumn>
+                                <TemplateColumn Title="Product Name" Class="col-name">
+                                    <button class="btn btn-link p-0 text-decoration-none fw-semibold text-start w-100 @(selectedProduct is not null && context.Product_id == selectedProduct.Product_id ? "selected-product" : "")" title="Ver detalle" @onclick="() => SelectProduct(context)" style="white-space: normal; text-align: left;">
+                                        @context.Product_Name
+                                    </button>
+                                </TemplateColumn>
+                                <PropertyColumn Property="@(p => p.Stock)" Title="Ex." Class="col-stock" />
+                                <TemplateColumn Title="Acc." Class="col-actions">
+                                    <button class="btn btn-sm btn-link p-1 text-dark fw-bold" type="button" title="Imprimir etiqueta" @onclick="() => OpenLabelPrint(context)"><Icon Name="IconName.UpcScan" /></button>
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="form-text mt-2">Haz clic en el nombre para ver el detalle en el tabpage. El grid tiene scroll vertical.</div>
+                    }
+                }
+            </div>
+            <div class="card-footer d-flex justify-content-between align-items-center small py-2">
+                <strong><Icon Name="IconName.Box" /> Total de productos</strong>
+                @if (IsFilterActive)
+                {
+                    <strong class="fw-bold">@productsFiltered.Count() de @(products?.Count ?? 0)</strong>
+                }
+                else
+                {
+                    <strong class="fw-bold">@(products?.Count ?? 0)</strong>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div style="flex: 0 0 calc(70% - 8px); min-width: 0;">
+        <div class="card h-100">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link @ActiveClass("detalle")" type="button" role="tab" aria-selected='@AriaSelected("detalle")' @onclick='() => activeDetailTab = "detalle"'><Icon Name="IconName.FileText" /> Detalle</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link @ActiveClass("otros")" type="button" role="tab" aria-selected='@AriaSelected("otros")' @onclick='() => activeDetailTab = "otros"'><Icon Name="IconName.Gear" /> Otros</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link @ActiveClass("etiqueta")" type="button" role="tab" aria-selected='@AriaSelected("etiqueta")' @onclick='() => activeDetailTab = "etiqueta"'><Icon Name="IconName.UpcScan" /> Etiqueta</button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                @if (selectedProduct is null)
+                {
+                    <div class="text-muted">Seleccione un producto para ver su detalle.</div>
+                }
+                else
+                {
+                    <div class="d-flex gap-2 mb-3">
+                        @if (!isDetailEditing)
+                        {
+                            <button class="btn btn-outline-primary" @onclick="StartDetailEdit"><Icon Name="IconName.Pencil" /> Editar</button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-success" @onclick="SaveDetailChanges" disabled="@isSaving"><Icon Name="IconName.FloppyFill" /> @(isSaving ? "Guardando..." : "Guardar")</button>
+                            <button class="btn btn-secondary" @onclick="CancelDetailEdit" disabled="@isSaving"><Icon Name="IconName.XCircle" /> Cancelar</button>
+                        }
+                    </div>
+
+                    <div class="detail-photos mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0 fw-semibold">Fotos del producto (3)</h6>
+                            <small class="text-muted">@(isDetailEditing ? "Clic en cuadro para cambiar foto" : "Clic para ampliar")</small>
+                        </div>
+                        <div class="row g-2">
+                            @for (var i = 0; i < 3; i++)
+                            {
+                                var index = i;
+                                <div class="col-md-4">
+                                    <div class="detail-photo-box" @onclick="() => OnDetailPhotoClicked(index)" title="@(isDetailEditing ? "Clic para cambiar la foto" : "Clic para ampliar")">
+                                        @if (!string.IsNullOrWhiteSpace(detailImagePreviews[index]))
+                                        {
+                                            <img src="@detailImagePreviews[index]" alt="Foto @(index + 1)" class="detail-photo-img" />
+                                            @if (isDetailEditing)
+                                            {
+                                                <button type="button" class="btn-photo-zoom" @onclick:stopPropagation="true" @onclick="() => OpenPhotoViewerFor(detailImagePreviews, index)" title="Ampliar"><Icon Name="IconName.ZoomIn" /></button>
+                                                <button type="button" class="btn-remove-image" @onclick:stopPropagation="true" @onclick="() => RemoveDetailImage(index)" title="Quitar foto">✕</button>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <div class="detail-photo-placeholder">
+                                                <div class="fs-4">📷</div>
+                                                <div class="small fw-semibold">Foto @(index + 1)</div>
+                                                <div class="small text-muted">@(isDetailEditing ? "Clic para elegir" : "Sin imagen")</div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <InputFile @ref="detailFileInput" OnChange="OnDetailPhotoSelected" accept="image/*" hidden data-detail-photo />
+                        <div class="form-text mt-1">Fotos guardadas como archivo en el servidor (no URL). Edita con <strong>Editar</strong> para cambiarlas, luego <strong>Guardar</strong>; sin editar, clic para ampliar.</div>
+                    </div>
+
+                    <fieldset disabled="@(!isDetailEditing)" style="border:0;padding:0;margin:0;min-width:0;">
+                    @if (activeDetailTab == "detalle")
+                    {
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Product ID (auto)</label>
+                                    <input class="form-control form-control-sm" type="text" value="@selectedProduct.Product_id" disabled />
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Código</label>
+                                    <input class="form-control form-control-sm" type="text" @bind="selectedProduct.Product_Code" placeholder="Código del producto" />
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Nombre</label>
+                                    <input class="form-control form-control-sm" type="text" @bind="selectedProduct.Product_Name" placeholder="Nombre del producto" />
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Categoría</label>
+                                    <input class="form-control form-control-sm" type="text" @bind="selectedProduct.Product_Type" list="catListDetail" placeholder="Categoría" />
+                                    <datalist id="catListDetail">
+                                        @foreach (var c in categorias.Where(cat => cat.IsActive))
+                                        {
+                                            <option value="@c.Name" />
+                                        }
+                                    </datalist>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Unidad</label>
+                                    <input class="form-control form-control-sm" type="text" @bind="selectedProduct.Unidad" list="unitListDetail" placeholder="Unidad" />
+                                    <datalist id="unitListDetail">
+                                        @foreach (var u in unidades.Where(unit => unit.IsActive))
+                                        {
+                                            <option value="@u.Name" />
+                                        }
+                                    </datalist>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Marca</label>
+                                    <input class="form-control form-control-sm" type="text" @bind="selectedProduct.Marca" placeholder="Marca" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Precio</label>
+                                    <input class="form-control form-control-sm" type="number" step="0.01" min="0" @bind="selectedProduct.Price" />
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Costo</label>
+                                    <input class="form-control form-control-sm" type="number" step="0.01" min="0" @bind="selectedProduct.Costo" />
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Stock (Existencia)</label>
+                                    <input class="form-control form-control-sm" type="number" step="0.01" @bind="selectedProduct.Stock" />
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Stock mínimo</label>
+                                    <input class="form-control form-control-sm" type="number" step="0.01" @bind="selectedProduct.Stock_Mix" />
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Stock máximo</label>
+                                    <input class="form-control form-control-sm" type="number" step="0.01" @bind="selectedProduct.Stock_Max" />
+                                </div>
+                                <div class="mb-2 form-check">
+                                    <input class="form-check-input" type="checkbox" @bind="selectedProduct.IsActive" id="activoDetalle" />
+                                    <label class="form-check-label" for="activoDetalle">Activo</label>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else if (activeDetailTab == "otros")
+                    {
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">SKU</label>
+                                    <input class="form-control form-control-sm" type="text" @bind="selectedProduct.SkuNumber" placeholder="SKU" />
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Part No.</label>
+                                    <input class="form-control form-control-sm" type="text" @bind="selectedProduct.PartNumber" placeholder="Part Number" />
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Modelo</label>
+                                    <input class="form-control form-control-sm" type="text" @bind="selectedProduct.Model" placeholder="Modelo" />
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Código de barras</label>
+                                    <input class="form-control form-control-sm" type="text" @bind="selectedProduct.Codebar" placeholder="EAN / UPC" />
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Estado producto</label>
+                                    <input class="form-control form-control-sm" type="text" @bind="selectedProduct.StatusProducts" placeholder="Ej. Disponible" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-2 form-check">
+                                    <input class="form-check-input" type="checkbox" @bind="selectedProduct.ManejaVencimiento" id="venDetalle" />
+                                    <label class="form-check-label" for="venDetalle">Maneja vencimiento</label>
+                                </div>
+                                <div class="mb-2 form-check">
+                                    <input class="form-check-input" type="checkbox" @bind="selectedProduct.ManejaSeriales" id="serDetalle" />
+                                    <label class="form-check-label" for="serDetalle">Maneja seriales</label>
+                                </div>
+                                <div class="mb-2 form-check">
+                                    <input class="form-check-input" type="checkbox" @bind="selectedProduct.ManejaLotes" id="loteDetalle" />
+                                    <label class="form-check-label" for="loteDetalle">Maneja lotes</label>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Fecha vencimiento</label>
+                                    <input class="form-control form-control-sm" type="date" @bind="selectedProduct.FechaVencimiento" @bind:format="yyyy-MM-dd" />
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Descripción</label>
+                                    <textarea class="form-control form-control-sm" rows="3" @bind="selectedProduct.Description" placeholder="Descripción"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    </fieldset>
+
+                    @if (activeDetailTab == "etiqueta")
+                    {
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="border p-3 rounded bg-white" style="max-width:320px;">
+                                    <div class="fw-bold fs-5 text-truncate">@selectedProduct.Product_Name</div>
+                                    <div class="text-muted small">@selectedProduct.Product_Type · @selectedProduct.Unidad</div>
+                                    <div class="my-2 py-2 border rounded text-center font-monospace fs-4">@(string.IsNullOrWhiteSpace(selectedProduct.Codebar) ? (string.IsNullOrWhiteSpace(selectedProduct.Product_Code) ? "SIN CODIGO" : selectedProduct.Product_Code) : selectedProduct.Codebar)</div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="font-monospace">@(string.IsNullOrWhiteSpace(selectedProduct.Codebar) ? selectedProduct.Product_Code : selectedProduct.Codebar)</span>
+                                        <strong class="fs-4">@selectedProduct.Price.ToString("C")</strong>
+                                    </div>
+                                    <div class="small text-muted mt-1">ID @selectedProduct.Product_id</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Vista previa ZPL</label>
+                                    <div class="border rounded p-2 bg-light font-monospace small text-break">^XA^PW406^LL406^FO10,10^A0N,28,28^FD@(selectedProduct.Product_Name)^FS^FO10,40^BCN,50,N,N,N^FD@(string.IsNullOrWhiteSpace(selectedProduct.Codebar) ? selectedProduct.Product_Code : selectedProduct.Codebar)^FS^XZ</div>
+                                </div>
+                                <button class="btn btn-primary" type="button" @onclick="() => OpenLabelPrint(selectedProduct)"><Icon Name="IconName.Printer" /> Imprimir etiqueta</button>
+                                <div class="form-text mt-2">Los datos vienen de Detalle. Edita Código de barras y Precio en <strong>Detalle</strong> con <strong>Editar → Guardar</strong>. Más formatos e impresoras en el módulo <strong>Etiquetas</strong>.</div>
+                            </div>
+                        </div>
+                    }
+
+                    <hr class="my-3" />
+                    <div class="small fw-semibold text-muted mb-2">Auditoría</div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered mb-0 small align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Evento</th>
+                                    <th>Fecha y hora</th>
+                                    <th>Usuario</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Creación</td>
+                                    <td>@FmtAuditDate(GetFechaCreacion(selectedProduct))</td>
+                                    <td>@(string.IsNullOrWhiteSpace(GetUsuarioCreacion(selectedProduct)) ? "-" : GetUsuarioCreacion(selectedProduct))</td>
+                                </tr>
+                                <tr>
+                                    <td>Última edición</td>
+                                    <td>@FmtAuditDate(GetFechaModificacion(selectedProduct))</td>
+                                    <td>@(string.IsNullOrWhiteSpace(GetUsuarioModificacion(selectedProduct)) ? "-" : GetUsuarioModificacion(selectedProduct))</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<Modal @ref="createModal" Title="@(isEdit ? "Editar producto" : "Nuevo producto")">
+    <BodyTemplate>
+        <div class="d-flex gap-2 mb-3">
+            <button class="btn btn-secondary" @onclick="CloseModal" disabled="@isSaving"><Icon Name="IconName.XCircle" /> Cancelar</button>
+            <button class="btn btn-primary" @onclick="SaveProduct" disabled="@isSaving">
+                <Icon Name="IconName.FloppyFill" />
+                @(isSaving ? "Guardando..." : "Guardar en base de datos")
+            </button>
+        </div>
+        <div class="row g-3">
+            @if (isEdit)
+            {
+                <div class="col-12">
+                    <label class="form-label text-muted">Product ID (auto)</label>
+                    <input class="form-control" type="text" value="@editingId" disabled />
+                </div>
+            }
+            <div class="col-12">
+                <label class="form-label">Product ID <span class="text-danger">*</span></label>
+                <input class="form-control" type="text" @bind="editProduct.Product_Code" placeholder="Ej. PROD-001" />
+                @if (!isEdit)
+                {
+                    <div class="form-text">Se guardará tal cual en la base de datos. Si es numérico, también se usa como Product ID.</div>
+                }
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">Nombre del producto <span class="text-danger">*</span></label>
+                <input class="form-control" @bind="editProduct.Product_Name" placeholder="Nombre del producto" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Categoría <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <select class="form-select" @bind:get="editProduct.Product_Type" @bind:set="(v => editProduct.Product_Type = v ?? string.Empty)" @bind:event="onchange">
+                        <option value="">Seleccione una categoría...</option>
+                        @foreach (var c in categorias.Where(cat => cat.IsActive).OrderBy(cat => cat.Name))
+                        {
+                            <option value="@c.Name">@c.Name</option>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(editProduct.Product_Type) && !categorias.Any(cat => cat.Name == editProduct.Product_Type))
+                        {
+                            <option value="@editProduct.Product_Type">@editProduct.Product_Type</option>
+                        }
+                    </select>
+                    <button type="button" class="btn btn-outline-secondary" @onclick="OpenCategoryManager" title="Gestionar categorías"><Icon Name="IconName.Gear" /></button>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Unidad <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <select class="form-select" @bind:get="editProduct.Unidad" @bind:set="(v => editProduct.Unidad = v ?? string.Empty)" @bind:event="onchange">
+                        <option value="">Seleccione una unidad...</option>
+                        @foreach (var u in unidades.Where(unit => unit.IsActive).OrderBy(unit => unit.Name))
+                        {
+                            <option value="@u.Name">@u.Name</option>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(editProduct.Unidad) && !unidades.Any(unit => unit.Name == editProduct.Unidad))
+                        {
+                            <option value="@editProduct.Unidad">@editProduct.Unidad</option>
+                        }
+                    </select>
+                    <button type="button" class="btn btn-outline-secondary" @onclick="OpenUnitManager" title="Gestionar unidades"><Icon Name="IconName.Gear" /></button>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">Precio de venta <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <span class="input-group-text">RD$</span>
+                    <input class="form-control" type="text" inputmode="decimal" placeholder="412,00" @bind:get="FormatModalPrice(editProduct.Price)" @bind:set="OnModalPriceChanged" />
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <label class="form-label"><strong>📸 Fotos del producto (máx 3)</strong></label>
+            <small class="text-muted d-block">Imágenes seleccionadas: <strong>@modalImages.Count(f => f is not null)/3</strong></small>
+            <p class="text-muted small">Haz clic en un cuadro vacío para abrir el explorador de archivos y elegir la foto, luego se previsualiza en el cuadro. Clic en una foto ocupada la elimina.</p>
+
+            <div class="row g-2 mt-2 mb-3">
+                @for (int i = 0; i < 3; i++)
+                {
+                    int currentIndex = i;
+                    <div class="col-md-4">
+                        <div class="image-preview-box clickable-box" @onclick="() => ClickImageBox(currentIndex)">
+                            @if (!string.IsNullOrEmpty(imagePreviews[i]))
+                            {
+                                <div class="image-preview-area">
+                                    <img src="@imagePreviews[i]" alt="Preview @(i+1)" class="img-preview" />
+                                    <button type="button" class="btn-photo-zoom" @onclick:stopPropagation="true" @onclick="() => OpenPhotoViewerFor(imagePreviews, i)" title="Ampliar"><Icon Name="IconName.ZoomIn" /></button>
+                                    <button type="button" class="btn-remove-image" @onclick:stopPropagation="true" @onclick="() => RemoveImage(i)" title="Eliminar imagen">
+                                        ✕
+                                    </button>
+                                </div>
+                                <div class="image-info">
+                                    <small class="text-success">✓ Imagen @(i + 1)</small>
+                                    @if (!string.IsNullOrEmpty(imageNames[i]))
+                                    {
+                                        <div class="text-truncate" title="@imageNames[i]">
+                                            <small>@imageNames[i]</small>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="image-placeholder">
+                                    <div class="placeholder-icon">📷</div>
+                                    <div class="placeholder-text">Imagen @(i + 1)</div>
+                                    <div class="placeholder-hint">Haz clic para seleccionar</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <InputFile id="modalPhotoInput" @ref="fileInput" OnChange="OnFileSelected" accept="image/*" hidden />
+        </div>
+    </BodyTemplate>
+</Modal>
+
+<Modal @ref="photoModal" Title="Foto ampliada" Size="ModalSize.ExtraLarge">
+    <BodyTemplate>
+        @if (!string.IsNullOrWhiteSpace(maximizedImage))
+        {
+            var photoIndices = GetPhotoIndices();
+            <div style="min-height: calc(65vh + 2rem);">
+                <div class="d-flex align-items-center justify-content-center gap-2">
+                    @if (photoIndices.Count > 1)
+                    {
+                        <button class="btn btn-outline-secondary flex-shrink-0" type="button" @onclick="PrevPhoto" title="Foto anterior"><Icon Name="IconName.ChevronLeft" /></button>
+                    }
+                    <img src="@maximizedImage" alt="Foto ampliada" style="width:min(100%, 820px); height:65vh; object-fit:contain; background:#f8f9fa; border:1px solid #dee2e6; border-radius:8px; padding:8px;" />
+                    @if (photoIndices.Count > 1)
+                    {
+                        <button class="btn btn-outline-secondary flex-shrink-0" type="button" @onclick="NextPhoto" title="Foto siguiente"><Icon Name="IconName.ChevronRight" /></button>
+                    }
+                </div>
+                <div class="text-center text-muted small mt-2" style="min-height:1.25rem;">@(photoIndices.Count > 1 ? $"{photoIndices.IndexOf(maximizedIndex) + 1} / {photoIndices.Count}" : "\u00A0")</div>
+            </div>
+        }
+    </BodyTemplate>
+    <FooterTemplate>
+        <button class="btn btn-secondary" @onclick="ClosePhotoViewer"><Icon Name="IconName.XCircle" /> Cerrar</button>
+    </FooterTemplate>
+</Modal>
+
+<Modal @ref="labelModal" Title="Etiqueta de código de barra" Size="ModalSize.Large">
+    <BodyTemplate>
+        @if (labelProduct is not null)
+        {
+            <div id="label-print-area" class="border p-3 rounded bg-white" style="max-width:320px; margin:0 auto;">
+                <div class="fw-bold fs-5 text-truncate">@labelProduct.Product_Name</div>
+                <div class="text-muted small">@labelProduct.Product_Type · @labelProduct.Unidad</div>
+                <div class="my-2 py-2 border rounded text-center font-monospace fs-4 letter-spacing">@(string.IsNullOrWhiteSpace(labelProduct.Codebar) ? (string.IsNullOrWhiteSpace(labelProduct.Product_Code) ? "SIN CODIGO" : labelProduct.Product_Code) : labelProduct.Codebar)</div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="font-monospace">@(string.IsNullOrWhiteSpace(labelProduct.Codebar) ? labelProduct.Product_Code : labelProduct.Codebar)</span>
+                    <strong class="fs-4">@labelProduct.Price.ToString("C")</strong>
+                </div>
+                <div class="small text-muted mt-1">ID @labelProduct.Product_id</div>
+            </div>
+            <div class="form-text mt-2 text-center">ZPL de ejemplo: <code>^XA^PW406^LL406^FO10,10^A0N,28,28^FD@(labelProduct.Product_Name)^FS^FO10,40^BCN,50,N,N,N^FD@(string.IsNullOrWhiteSpace(labelProduct.Codebar) ? labelProduct.Product_Code : labelProduct.Codebar)^FS^XZ</code></div>
+        }
+    </BodyTemplate>
+    <FooterTemplate>
+        <button class="btn btn-secondary" @onclick="CloseLabelModal"><Icon Name="IconName.XCircle" /> Cerrar</button>
+        <button class="btn btn-primary" @onclick="PrintLabel"><Icon Name="IconName.Printer" /> Imprimir</button>
+    </FooterTemplate>
+</Modal>
+
+<Modal @ref="reportModal" Title="Reporte de productos" Size="ModalSize.ExtraLarge">
+    <BodyTemplate>
+        <div class="row g-3 mb-3">
+            <div class="col-md-3"><div class="border rounded p-3 h-100"><div class="small text-muted"><Icon Name="IconName.Box" /> Total productos</div><div class="fs-3 fw-bold">@ReportTotalProducts</div></div></div>
+            <div class="col-md-3"><div class="border rounded p-3 h-100"><div class="small text-muted"><Icon Name="IconName.LayersFill" /> Unidades en stock</div><div class="fs-3 fw-bold">@ReportTotalStock.ToString("N0")</div></div></div>
+            <div class="col-md-3"><div class="border rounded p-3 h-100"><div class="small text-muted"><Icon Name="IconName.CashCoin" /> Valor costo</div><div class="fs-4 fw-bold">@ReportTotalCostValue.ToString("C")</div></div></div>
+            <div class="col-md-3"><div class="border rounded p-3 h-100"><div class="small text-muted"><Icon Name="IconName.CartFill" /> Valor venta</div><div class="fs-4 fw-bold">@ReportTotalPriceValue.ToString("C")</div></div></div>
+        </div>
+        <h6 class="fw-semibold"><Icon Name="IconName.Tags" /> Resumen por categoría</h6>
+        <table class="table table-sm table-striped">
+            <thead><tr><th>Categoría</th><th>Productos</th><th>Unidades</th><th class="text-end">Valor costo</th></tr></thead>
+            <tbody>
+                @foreach (var r in ReportByCategory)
+                {
+                    <tr><td>@r.Categoria</td><td>@r.Count</td><td>@r.StockSum.ToString("N0")</td><td class="text-end">@r.Value.ToString("C")</td></tr>
+                }
+            </tbody>
+        </table>
+        <h6 class="fw-semibold mt-3"><Icon Name="IconName.ExclamationTriangleFill" /> Stock bajo mínimo (@ReportLowStock.Count())</h6>
+        @if (ReportLowStock.Count == 0)
+        {
+            <p class="text-muted small">Sin productos bajo mínimo.</p>
+        }
+        else
+        {
+            <table class="table table-sm table-striped">
+                <thead><tr><th>Producto</th><th>Marca</th><th>Stock</th><th>Mínimo</th></tr></thead>
+                <tbody>
+                    @foreach (var p in ReportLowStock)
+                    {
+                        <tr><td>@p.Product_Name</td><td>@p.Marca</td><td>@p.Stock.ToString("N0")</td><td>@p.Stock_Mix.ToString("N0")</td></tr>
+                    }
+                </tbody>
+            </table>
+        }
+        <div class="form-text mt-2">Reporte según filtro actual: <strong>@productsFiltered.Count() de @(products?.Count ?? 0)</strong> productos.</div>
+    </BodyTemplate>
+    <FooterTemplate>
+        <button class="btn btn-secondary" @onclick="CloseProductReport"><Icon Name="IconName.XCircle" /> Cerrar</button>
+        <button class="btn btn-outline-info" @onclick="ExportToExcel"><Icon Name="IconName.FileEarmarkExcel" /> Exportar Excel</button>
+        <button class="btn btn-primary" @onclick="PrintProductReport"><Icon Name="IconName.Printer" /> Imprimir</button>
+    </FooterTemplate>
+</Modal>
+
+<CategoryUnitManager @ref="categoryUnitManager" OnChanged="ReloadCategoryUnitLists" OnCategorySelected="OnCategorySelectedFromManager" OnUnitSelected="OnUnitSelectedFromManager" />
+
+@code {
+    private List<ApiProductService.Product>? products;
+    private IEnumerable<ApiProductService.Product> productsFiltered = new List<ApiProductService.Product>();
+    private List<ApiConfigService.CategoryDto> categorias = new();
+    private List<ApiConfigService.ProductUnitDto> unidades = new();
+    private Modal? createModal;
+    private CategoryUnitManager categoryUnitManager = default!;
+    private ApiProductService.Product editProduct = new();
+    private ApiProductService.Product? selectedProduct;
+    private bool isEdit;
+    private bool isSaving;
+    private int editingId;
+    private string searchText = "";
+    private string filtroTipo = "todos";
+    private string activeDetailTab = "detalle";
+    private bool IsFilterActive => !string.IsNullOrWhiteSpace(searchText);
+    private string productViewMode = "grid";
+    private Modal? labelModal = null;
+    private ApiProductService.Product? labelProduct = null;
+    private Modal? reportModal = null;
+    private int ReportTotalProducts => productsFiltered?.Count() ?? 0;
+    private double ReportTotalStock => productsFiltered?.Sum(p => p.Stock) ?? 0;
+    private decimal ReportTotalCostValue => productsFiltered?.Sum(p => (decimal)p.Stock * p.Costo) ?? 0;
+    private double ReportTotalPriceValue => productsFiltered?.Sum(p => p.Stock * p.Price) ?? 0;
+    private List<(string Categoria, int Count, double StockSum, decimal Value)> ReportByCategory =>
+        (productsFiltered ?? new List<ApiProductService.Product>())
+            .GroupBy(p => string.IsNullOrWhiteSpace(p.Product_Type) ? "(Sin categoría)" : p.Product_Type.Trim())
+            .OrderBy(g => g.Key)
+            .Select(g => (Categoria: g.Key, Count: g.Count(), StockSum: g.Sum(x => x.Stock), Value: g.Sum(x => (decimal)x.Stock * x.Costo)))
+            .ToList();
+    private List<ApiProductService.Product> ReportLowStock =>
+        (productsFiltered ?? new List<ApiProductService.Product>())
+            .Where(p => p.Stock_Mix > 0 && p.Stock <= p.Stock_Mix)
+            .OrderBy(p => p.Product_Name)
+            .ToList();
+
+    // Detalle en modo edición: Editar arriba -> Guardar/Cancelar -> volver a Editar
+    private bool isDetailEditing = false;
+    private ApiProductService.Product? detailBackup;
+
+    // Fotos detalle: modal de ampliación + edición inline al editar
+    private Modal? photoModal = null;
+    private string? maximizedImage = null;
+    private int maximizedIndex = -1;
+    private int detailNextImageSlot = 0;
+    private InputFile detailFileInput = default!;
+
+    // Fotos: sin URL, como en ScanPro (archivo + vista previa en el cuadro)
+    private InputFile fileInput = default!;
+    private (string FileName, string ContentType, byte[] Data)?[] modalImages = new (string, string, byte[])?[3];
+    private int?[] modalExistingImageIds = new int?[3];
+    private bool[] modalImageRemoved = new bool[3];
+    private string[] imagePreviews = new string[3];
+    private string[] imageNames = new string[3];
+    private int nextImageSlot = 0;
+    private (string FileName, string ContentType, byte[] Data)?[] detailImages = new (string, string, byte[])?[3];
+    private int?[] detailExistingImageIds = new int?[3];
+    private bool[] detailImageRemoved = new bool[3];
+    private string[] detailImagePreviews = new string[3];
+
+    protected override async Task OnInitializedAsync()
+    {
+        categorias = await ConfigApi.GetCategoriesAsync();
+        unidades = await ConfigApi.GetProductUnitsAsync();
+        await LoadProducts();
+    }
+
+    private async Task OpenCategoryManager() => await categoryUnitManager.ShowCategoriesAsync();
+    private async Task OpenUnitManager() => await categoryUnitManager.ShowUnitsAsync();
+    private async Task ReloadCategoryUnitLists()
+    {
+        categorias = await ConfigApi.GetCategoriesAsync();
+        unidades = await ConfigApi.GetProductUnitsAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadProducts()
+    {
+        products = await Api.GetProductsAsync();
+        productsFiltered = (products ?? new()).OrderByDescending(p => p.Product_id).ToList();
+
+        if (productsFiltered.Any())
+        {
+            selectedProduct = productsFiltered.First();
+            isDetailEditing = false;
+            detailBackup = null;
+            await LoadDetailImagesAsync();
+        }
+        else
+        {
+            selectedProduct = null;
+            isDetailEditing = false;
+            detailBackup = null;
+            detailImagePreviews = new string[3];
+        }
+    }
+
+    private void OnSearchTextChanged(ChangeEventArgs e)
+    {
+        searchText = e.Value?.ToString() ?? string.Empty;
+        Buscar();
+    }
+
+    private void OnFiltroTipoChanged(string value)
+    {
+        filtroTipo = value;
+        if (value == "todos")
+        {
+            searchText = string.Empty;
+        }
+        Buscar();
+    }
+
+    private void OnCategorySelectedFromManager(string name)
+    {
+        editProduct.Product_Type = name;
+        StateHasChanged();
+    }
+
+    private void OnUnitSelectedFromManager(string name)
+    {
+        editProduct.Unidad = name;
+        StateHasChanged();
+    }
+
+    private void Buscar()
+    {
+        if (products is null)
+        {
+            return;
+        }
+
+        var filtro = searchText?.Trim() ?? string.Empty;
+        var q = products.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(filtro))
+        {
+            q = filtroTipo switch
+            {
+                "categoria" => q.Where(p => (p.Product_Type ?? string.Empty).Contains(filtro, StringComparison.OrdinalIgnoreCase)),
+                "unidad" => q.Where(p => (p.Unidad ?? string.Empty).Contains(filtro, StringComparison.OrdinalIgnoreCase)),
+                "marca" => q.Where(p => (p.Marca ?? string.Empty).Contains(filtro, StringComparison.OrdinalIgnoreCase)),
+                _ => q.Where(p =>
+                    p.Product_id.ToString().Contains(filtro, StringComparison.OrdinalIgnoreCase) ||
+                    (p.Product_Code ?? string.Empty).Contains(filtro, StringComparison.OrdinalIgnoreCase) ||
+                    (p.Product_Name ?? string.Empty).Contains(filtro, StringComparison.OrdinalIgnoreCase) ||
+                    (p.Product_Type ?? string.Empty).Contains(filtro, StringComparison.OrdinalIgnoreCase) ||
+                    (p.Unidad ?? string.Empty).Contains(filtro, StringComparison.OrdinalIgnoreCase) ||
+                    (p.Marca ?? string.Empty).Contains(filtro, StringComparison.OrdinalIgnoreCase))
+            };
+        }
+
+        productsFiltered = q.OrderByDescending(p => p.Product_id).ToList();
+
+        if (productsFiltered.Any())
+        {
+            // Si el seleccionado actual sigue en el filtro, mantenerlo; si no, tomar el primero.
+            // Esto refresca los datos del tabpage (Detalle + Otros + fotos) al cambiar el filtro.
+            if (selectedProduct is null || !productsFiltered.Any(p => p.Product_id == selectedProduct.Product_id))
+            {
+                selectedProduct = productsFiltered.First();
+                isDetailEditing = false;
+                detailBackup = null;
+                _ = LoadDetailImagesAsync();
+            }
+        }
+        else
+        {
+            selectedProduct = null;
+            isDetailEditing = false;
+            detailBackup = null;
+            detailImagePreviews = new string[3];
+        }
+    }
+
+    private string ActiveClass(string tab) => activeDetailTab == tab ? "active" : string.Empty;
+
+    private string AriaSelected(string tab) => activeDetailTab == tab ? "true" : "false";
+
+    private async Task SelectProduct(ApiProductService.Product product)
+    {
+        // Al seleccionar un producto del grid, refrescar los datos en las páginas del tabpage (Detalle y Otros)
+        isDetailEditing = false;
+        detailBackup = null;
+        selectedProduct = product;
+        StateHasChanged();
+        await LoadDetailImagesAsync();
+    }
+
+    private async Task LoadDetailImagesAsync()
+    {
+        var forId = selectedProduct?.Product_id ?? 0;
+        detailImagePreviews = new string[3];
+        if (selectedProduct?.Images is null || forId <= 0) return;
+
+        var productImages = selectedProduct.Images
+            .Where(i => i.ProductId == selectedProduct.Product_id || i.ProductId == 0)
+            .OrderBy(i => i.ImageIndex)
+            .ToList();
+
+        foreach (var image in productImages)
+        {
+            if (image.ImageIndex < 0 || image.ImageIndex >= 3) continue;
+            if (image.Id <= 0) continue;
+            try
+            {
+                var bytes = await Api.GetProductImageBytesAsync(image.Id);
+                if (selectedProduct?.Product_id != forId) return;
+                if (bytes is not null && bytes.Length > 0)
+                {
+                    var base64 = Convert.ToBase64String(bytes);
+                    detailImagePreviews[image.ImageIndex] = $"data:{image.ContentType ?? "image/jpeg"};base64,{base64}";
+                }
+            }
+            catch { }
+        }
+        if (selectedProduct?.Product_id == forId)
+            StateHasChanged();
+    }
+
+    private async Task ClickImageBox(int index)
+    {
+        // Clic en cuadro ocupado -> eliminar; vacío -> abrir explorador de archivos (InputFile)
+        if (!string.IsNullOrEmpty(imagePreviews[index]))
+        {
+            RemoveImage(index);
+        }
+        else
+        {
+            nextImageSlot = index;
+            await OpenFileDialog();
+        }
+    }
+
+    private async Task OpenFileDialog()
+    {
+        try
+        {
+            if (fileInput != null)
+            {
+                await JS.InvokeVoidAsync("eval", "document.getElementById('modalPhotoInput')?.click()");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+
+        if (file != null && nextImageSlot >= 0 && nextImageSlot < 3)
+        {
+            try
+            {
+                var buffer = new byte[file.Size];
+                using (var stream = file.OpenReadStream(maxAllowedSize: 10_000_000))
+                {
+                    var totalRead = 0;
+                    var remaining = (int)file.Size;
+                    while (remaining > 0)
+                    {
+                        var read = await stream.ReadAsync(buffer, totalRead, remaining);
+                        if (read == 0)
+                            break;
+                        totalRead += read;
+                        remaining -= read;
+                    }
+                }
+
+                var base64 = Convert.ToBase64String(buffer);
+                var contentType = file.ContentType ?? DetectContentType(file.Name);
+                imagePreviews[nextImageSlot] = $"data:{contentType};base64,{base64}";
+                imageNames[nextImageSlot] = file.Name;
+                modalImages[nextImageSlot] = (file.Name, contentType, buffer);
+                if (nextImageSlot >= 0 && nextImageSlot < modalImageRemoved.Length) modalImageRemoved[nextImageSlot] = false;
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error cargando archivo: {ex.Message}");
+            }
+        }
+    }
+
+    private void RemoveImage(int index)
+    {
+        if (index < 0 || index >= 3)
+            return;
+
+        imagePreviews[index] = string.Empty;
+        imageNames[index] = string.Empty;
+        modalImages[index] = null;
+        if (index < modalExistingImageIds.Length && modalExistingImageIds[index].HasValue) modalImageRemoved[index] = true;
+        StateHasChanged();
+    }
+
+    private string DetectContentType(string fileName)
+    {
+        var extension = Path.GetExtension(fileName).ToLower();
+        return extension switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".gif" => "image/gif",
+            ".webp" => "image/webp",
+            ".bmp" => "image/bmp",
+            _ => "image/jpeg"
+        };
+    }
+
+    private async Task OpenNew()
+    {
+        isEdit = false;
+        isSaving = false;
+        editingId = 0;
+        modalImages = new (string, string, byte[])?[3];
+        modalExistingImageIds = new int?[3];
+        modalImageRemoved = new bool[3];
+        imagePreviews = new string[3];
+        imageNames = new string[3];
+        nextImageSlot = 0;
+        editProduct = new ApiProductService.Product
+        {
+            Product_id = 0,
+            Product_Code = "",
+            Product_Name = "",
+            Product_Type = "",
+            Unidad = "",
+            Price = 0,
+            Codebar = "",
+            Costo = 0,
+            Stock = 0,
+            Stock_Mix = 0,
+            Stock_Max = 0,
+            FechaVencimiento = null,
+            ManejaVencimiento = false,
+            ManejaSeriales = false,
+            ManejaLotes = false,
+            Description = "",
+            SkuNumber = "",
+            PartNumber = "",
+            Model = "",
+            Marca = "",
+            StatusProducts = "",
+            IsActive = true,
+            Images = new()
+        };
+
+        if (createModal is not null) await createModal.ShowAsync();
+    }
+
+    // (edición por modal eliminada: flujo activo es edición inline en detalle)
+
+    private async Task CloseModal()
+    {
+        if (createModal is not null) await createModal.HideAsync();
+    }
+
+    private async Task SaveProduct()
+    {
+        if (isSaving) return;
+
+        // Product_id es IDENTITY en BD: al crear siempre 0 (evita SQL 544)
+        if (isEdit)
+        {
+            editProduct.Product_id = editingId;
+        }
+        else
+        {
+            editProduct.Product_id = 0;
+        }
+
+        if (string.IsNullOrWhiteSpace(editProduct.Product_Code))
+        {
+            ToastSvc.Notify(new(ToastType.Danger, "El código del producto es obligatorio para crear un nuevo producto."));
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(editProduct.Product_Name))
+        {
+            ToastSvc.Notify(new(ToastType.Danger, "El nombre del producto es obligatorio."));
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(editProduct.Product_Type))
+        {
+            ToastSvc.Notify(new(ToastType.Danger, "La categoría es obligatoria."));
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(editProduct.Unidad))
+        {
+            ToastSvc.Notify(new(ToastType.Danger, "La unidad es obligatoria."));
+            return;
+        }
+
+        if (editProduct.Price <= 0)
+        {
+            ToastSvc.Notify(new(ToastType.Danger, "El precio debe ser mayor a cero."));
+            return;
+        }
+
+        // Fotos: sin URL, archivos reales (multipart al crear / base64 al editar)
+        editProduct.Images ??= new();
+        isSaving = true;
+        StateHasChanged();
+        try
+        {
+            bool ok;
+            string? errorDetail = null;
+            ApiProductService.Product? created = null;
+            var imageErrors = new List<string>();
+
+            if (isEdit)
+            {
+                var res = await Api.UpdateProductWithDetailsAsync(editingId, editProduct);
+                ok = res.Success;
+                errorDetail = res.Error;
+
+                if (ok)
+                {
+                    // Subir fotos nuevas: si el slot ya tenía imagen, actualizar; si no, agregar
+                    var existingByIndex = editProduct.Images
+                        .Where(i => i.Id > 0)
+                        .GroupBy(i => i.ImageIndex)
+                        .ToDictionary(g => g.Key, g => g.First());
+
+                    for (int slot = 0; slot < 3; slot++)
+                    {
+                        var img = modalImages[slot];
+                        if (img is null) continue;
+                        try
+                        {
+                            var base64 = Convert.ToBase64String(img.Value.Data);
+                            var existing = existingByIndex.TryGetValue(slot, out var ei) ? ei : null;
+                            bool imgOk;
+                            if (existing is not null)
+                            {
+                                imgOk = await Api.UpdateProductImageAsync(existing.Id, base64, img.Value.FileName, img.Value.ContentType);
+                                if (!imgOk)
+                                    imgOk = await Api.AddProductImageAsync(editingId, base64, img.Value.FileName, img.Value.ContentType, slot);
+                            }
+                            else
+                            {
+                                imgOk = await Api.AddProductImageAsync(editingId, base64, img.Value.FileName, img.Value.ContentType, slot);
+                            }
+                            if (!imgOk)
+                            {
+                                imageErrors.Add($"foto {slot + 1}");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            imageErrors.Add($"foto {slot + 1} ({ex.Message})");
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Crear con archivos multipart (ScanPro)
+                var uploads = modalImages
+                    .Select((img, idx) => img is null ? null : new ApiProductService.ProductImageUpload { FileName = img.Value.FileName, ContentType = img.Value.ContentType, Data = img.Value.Data, Slot = idx })
+                    .Where(u => u is not null)
+                    .Cast<ApiProductService.ProductImageUpload>()
+                    .ToList();
+                var res = await Api.CreateProductWithFilesAsync(editProduct, uploads);
+                ok = res.Success;
+                errorDetail = res.Error;
+                created = res.CreatedProduct;
+            }
+
+            if (ok)
+            {
+                if (isEdit && imageErrors.Count > 0)
+                    ToastSvc.Notify(new(ToastType.Warning, $"Producto guardado, pero no se pudo guardar: {string.Join(", ", imageErrors)}."));
+                else
+                    ToastSvc.Notify(new(ToastType.Success, isEdit ? "Producto actualizado en la base de datos." : "Producto guardado en la base de datos exitosamente."));
+                modalImages = new (string, string, byte[])?[3];
+                modalExistingImageIds = new int?[3];
+                modalImageRemoved = new bool[3];
+                imagePreviews = new string[3];
+                imageNames = new string[3];
+                nextImageSlot = 0;
+                var targetId = isEdit ? editingId : (created?.Product_id ?? 0);
+                await LoadProducts();
+                if (targetId > 0)
+                {
+                    var refreshed = await Api.GetProductAsync(targetId);
+                    if (refreshed is not null && products is not null)
+                    {
+                        var idx = products.FindIndex(p => p.Product_id == targetId);
+                        if (idx >= 0) products[idx] = refreshed; else products.Add(refreshed);
+                    }
+                }
+                Buscar();
+                if (targetId > 0 && products is not null)
+                {
+                    selectedProduct = products.FirstOrDefault(p => p.Product_id == targetId);
+                }
+                if (selectedProduct is not null)
+                {
+                    await LoadDetailImagesAsync();
+                }
+                if (createModal is not null) await createModal.HideAsync();
+            }
+            else
+            {
+                var msg = string.IsNullOrWhiteSpace(errorDetail)
+                    ? "No se pudo guardar el producto. Revisa que la API esté disponible (http://localhost:5220) y conectada a la base de datos."
+                    : $"Error en base de datos / API: {errorDetail}";
+                ToastSvc.Notify(new(ToastType.Danger, msg));
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastSvc.Notify(new(ToastType.Danger, $"Error inesperado al guardar: {ex.Message}"));
+        }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private void StartDetailEdit()
+    {
+        if (selectedProduct is null) return;
+        detailBackup = CloneProduct(selectedProduct);
+        detailImages = new (string, string, byte[])?[3];
+        detailImageRemoved = new bool[3];
+        detailExistingImageIds = new int?[3];
+        if (selectedProduct.Images is not null)
+        {
+            foreach (var img in selectedProduct.Images.Where(i => i.Id > 0))
+            {
+                if (img.ImageIndex >= 0 && img.ImageIndex < 3 && detailExistingImageIds[img.ImageIndex] is null)
+                    detailExistingImageIds[img.ImageIndex] = img.Id;
+            }
+        }
+        isDetailEditing = true;
+    }
+
+    private void CancelDetailEdit()
+    {
+        if (selectedProduct is not null && detailBackup is not null)
+        {
+            CopyProduct(detailBackup, selectedProduct);
+        }
+        detailBackup = null;
+        detailImages = new (string, string, byte[])?[3];
+        detailImageRemoved = new bool[3];
+        detailExistingImageIds = new int?[3];
+        isDetailEditing = false;
+        _ = LoadDetailImagesAsync();
+    }
+
+    private async Task OpenLabelPrint(ApiProductService.Product p)
+    {
+        labelProduct = p;
+        if (labelModal is not null) await labelModal.ShowAsync();
+    }
+
+    private async Task PrintLabel()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("eval", @"(function(){var el=document.getElementById('label-print-area'); if(!el) return; var w=window.open('','_blank','width=420,height=520'); if(!w){window.print(); return;} w.document.write('<html><head><meta charset=""utf-8""/><title>Etiqueta</title><style>body{font-family:system-ui,Segoe UI,sans-serif;margin:16px;display:flex;justify-content:center}.border{border:1px solid #dee2e6}.p-3{padding:1rem}.rounded{border-radius:.375rem}.bg-white{background:#fff}.fw-bold{font-weight:700}.fs-5{font-size:1.25rem}.fs-4{font-size:1.5rem}.text-muted{color:#6c757d}.small{font-size:.875em}.my-2{margin:.5rem 0}.py-2{padding:.5rem 0}.text-center{text-align:center}.font-monospace{font-family:ui-monospace,monospace}.d-flex{display:flex}.justify-content-between{justify-content:space-between}.align-items-center{align-items:center}.mt-1{margin-top:.25rem}.text-truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}</style></head><body>'+el.outerHTML+'</body></html>'); w.document.close(); w.focus(); setTimeout(function(){w.print(); w.close();}, 250);})();");
+        }
+        catch { }
+    }
+
+    private async Task CloseLabelModal() { if (labelModal is not null) await labelModal.HideAsync(); }
+
+    private async Task OpenProductReport() { if (reportModal is not null) await reportModal.ShowAsync(); }
+    private async Task CloseProductReport() { if (reportModal is not null) await reportModal.HideAsync(); }
+    private async Task PrintProductReport() { try { await JS.InvokeVoidAsync("eval", "window.print()"); } catch { } }
+
+    private string[] activePhotoPreviews = Array.Empty<string>();
+
+    private async Task OpenPhotoViewer(int index)
+    {
+        await OpenPhotoViewerFor(detailImagePreviews, index);
+    }
+
+    private async Task OpenPhotoViewerFor(string[] previews, int index)
+    {
+        if (previews is null || index < 0 || index >= previews.Length) return;
+        if (string.IsNullOrWhiteSpace(previews[index])) return;
+        activePhotoPreviews = previews;
+        maximizedIndex = index;
+        maximizedImage = previews[index];
+        if (photoModal is not null) await photoModal.ShowAsync();
+    }
+
+    private async Task ClosePhotoViewer() { if (photoModal is not null) await photoModal.HideAsync(); }
+
+    private List<int> GetPhotoIndices() => (activePhotoPreviews ?? Array.Empty<string>())
+        .Select((img, idx) => new { img, idx })
+        .Where(x => !string.IsNullOrWhiteSpace(x.img))
+        .Select(x => x.idx)
+        .ToList();
+
+    private void ShowPhotoByIndex(int index)
+    {
+        if (activePhotoPreviews is null || index < 0 || index >= activePhotoPreviews.Length) return;
+        if (string.IsNullOrWhiteSpace(activePhotoPreviews[index])) return;
+        maximizedIndex = index;
+        maximizedImage = activePhotoPreviews[index];
+    }
+
+    private void NextPhoto()
+    {
+        var indices = GetPhotoIndices();
+        if (indices.Count == 0) return;
+        var pos = indices.IndexOf(maximizedIndex);
+        if (pos < 0) pos = 0;
+        ShowPhotoByIndex(indices[(pos + 1) % indices.Count]);
+    }
+
+    private void PrevPhoto()
+    {
+        var indices = GetPhotoIndices();
+        if (indices.Count == 0) return;
+        var pos = indices.IndexOf(maximizedIndex);
+        if (pos < 0) pos = 0;
+        ShowPhotoByIndex(indices[(pos - 1 + indices.Count) % indices.Count]);
+    }
+
+    private async Task OnDetailPhotoClicked(int index)
+    {
+        if (isDetailEditing)
+        {
+            detailNextImageSlot = index;
+            try { await JS.InvokeVoidAsync("eval", "document.querySelector('input[type=\"file\"][data-detail-photo]')?.click()"); } catch { await JS.InvokeVoidAsync("eval", "document.querySelector('input[type=file]').click()"); }
+        }
+        else
+        {
+            await OpenPhotoViewer(index);
+        }
+    }
+
+    private async Task OnDetailPhotoSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+        if (detailNextImageSlot < 0 || detailNextImageSlot >= 3) return;
+        try
+        {
+            var buffer = new byte[file.Size];
+            using (var stream = file.OpenReadStream(maxAllowedSize: 10_000_000))
+            {
+                var totalRead = 0;
+                var remaining = (int)file.Size;
+                while (remaining > 0)
+                {
+                    var read = await stream.ReadAsync(buffer, totalRead, remaining);
+                    if (read == 0) break;
+                    totalRead += read;
+                    remaining -= read;
+                }
+            }
+            var base64 = Convert.ToBase64String(buffer);
+            var contentType = file.ContentType ?? DetectContentType(file.Name);
+            detailImagePreviews[detailNextImageSlot] = $"data:{contentType};base64,{base64}";
+            detailImages[detailNextImageSlot] = (file.Name, contentType, buffer);
+            detailImageRemoved[detailNextImageSlot] = false;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            ToastSvc.Notify(new(ToastType.Danger, $"Error al cargar la foto: {ex.Message}"));
+        }
+    }
+
+    private void RemoveDetailImage(int index)
+    {
+        if (index < 0 || index >= 3) return;
+        detailImagePreviews[index] = string.Empty;
+        detailImages[index] = null;
+        if (detailExistingImageIds[index].HasValue) detailImageRemoved[index] = true;
+        StateHasChanged();
+    }
+
+    private static ApiProductService.Product CloneProduct(ApiProductService.Product p) =>
+        new()
+        {
+            Product_id = p.Product_id,
+            Product_Code = p.Product_Code,
+            Product_Name = p.Product_Name,
+            Product_Type = p.Product_Type,
+            Price = p.Price,
+            Codebar = p.Codebar,
+            Unidad = p.Unidad,
+            Costo = p.Costo,
+            Stock = p.Stock,
+            Stock_Mix = p.Stock_Mix,
+            Stock_Max = p.Stock_Max,
+            FechaVencimiento = p.FechaVencimiento,
+            ManejaVencimiento = p.ManejaVencimiento,
+            ManejaSeriales = p.ManejaSeriales,
+            ManejaLotes = p.ManejaLotes,
+            StockStatus = p.StockStatus,
+            Description = p.Description,
+            SkuNumber = p.SkuNumber,
+            PartNumber = p.PartNumber,
+            Model = p.Model,
+            Marca = p.Marca,
+            StatusProducts = p.StatusProducts,
+            IsActive = p.IsActive,
+            CreatedAt = p.CreatedAt,
+            CreatedDate = p.CreatedDate,
+            DateCreated = p.DateCreated,
+            CreatedOn = p.CreatedOn,
+            FechaCreacion = p.FechaCreacion,
+            FechaCreado = p.FechaCreado,
+            CreatedBy = p.CreatedBy,
+            CreatedByUser = p.CreatedByUser,
+            CreatedByName = p.CreatedByName,
+            UsuarioCreacion = p.UsuarioCreacion,
+            UsuarioCreado = p.UsuarioCreado,
+            UpdatedAt = p.UpdatedAt,
+            UpdatedDate = p.UpdatedDate,
+            DateUpdated = p.DateUpdated,
+            DateModified = p.DateModified,
+            ModifiedOn = p.ModifiedOn,
+            LastModified = p.LastModified,
+            LastUpdated = p.LastUpdated,
+            FechaModificacion = p.FechaModificacion,
+            FechaActualizacion = p.FechaActualizacion,
+            UpdatedBy = p.UpdatedBy,
+            UpdatedByUser = p.UpdatedByUser,
+            UpdatedByName = p.UpdatedByName,
+            ModifiedBy = p.ModifiedBy,
+            ModifiedByName = p.ModifiedByName,
+            UsuarioModificacion = p.UsuarioModificacion,
+            UsuarioActualizacion = p.UsuarioActualizacion,
+            Images = p.Images?.Select(i => new ApiProductService.ProductImage
+            {
+                Id = i.Id,
+                ProductId = i.ProductId,
+                FileName = i.FileName,
+                StoredFileName = i.StoredFileName,
+                ContentType = i.ContentType,
+                ImageIndex = i.ImageIndex,
+                Url = i.Url
+            }).ToList() ?? new()
+        };
+
+    private static void CopyProduct(ApiProductService.Product from, ApiProductService.Product to)
+    {
+        to.Product_Code = from.Product_Code;
+        to.Product_Name = from.Product_Name;
+        to.Product_Type = from.Product_Type;
+        to.Price = from.Price;
+        to.Codebar = from.Codebar;
+        to.Unidad = from.Unidad;
+        to.Costo = from.Costo;
+        to.Stock = from.Stock;
+        to.Stock_Mix = from.Stock_Mix;
+        to.Stock_Max = from.Stock_Max;
+        to.FechaVencimiento = from.FechaVencimiento;
+        to.ManejaVencimiento = from.ManejaVencimiento;
+        to.ManejaSeriales = from.ManejaSeriales;
+        to.ManejaLotes = from.ManejaLotes;
+        to.StockStatus = from.StockStatus;
+        to.Description = from.Description;
+        to.SkuNumber = from.SkuNumber;
+        to.PartNumber = from.PartNumber;
+        to.Model = from.Model;
+        to.Marca = from.Marca;
+        to.StatusProducts = from.StatusProducts;
+        to.IsActive = from.IsActive;
+        to.CreatedAt = from.CreatedAt;
+        to.CreatedDate = from.CreatedDate;
+        to.DateCreated = from.DateCreated;
+        to.CreatedOn = from.CreatedOn;
+        to.FechaCreacion = from.FechaCreacion;
+        to.FechaCreado = from.FechaCreado;
+        to.CreatedBy = from.CreatedBy;
+        to.CreatedByUser = from.CreatedByUser;
+        to.CreatedByName = from.CreatedByName;
+        to.UsuarioCreacion = from.UsuarioCreacion;
+        to.UsuarioCreado = from.UsuarioCreado;
+        to.UpdatedAt = from.UpdatedAt;
+        to.UpdatedDate = from.UpdatedDate;
+        to.DateUpdated = from.DateUpdated;
+        to.DateModified = from.DateModified;
+        to.ModifiedOn = from.ModifiedOn;
+        to.LastModified = from.LastModified;
+        to.LastUpdated = from.LastUpdated;
+        to.FechaModificacion = from.FechaModificacion;
+        to.FechaActualizacion = from.FechaActualizacion;
+        to.UpdatedBy = from.UpdatedBy;
+        to.UpdatedByUser = from.UpdatedByUser;
+        to.UpdatedByName = from.UpdatedByName;
+        to.ModifiedBy = from.ModifiedBy;
+        to.ModifiedByName = from.ModifiedByName;
+        to.UsuarioModificacion = from.UsuarioModificacion;
+        to.UsuarioActualizacion = from.UsuarioActualizacion;
+        to.Images = from.Images?.Select(i => new ApiProductService.ProductImage
+        {
+            Id = i.Id,
+            ProductId = i.ProductId,
+            FileName = i.FileName,
+            StoredFileName = i.StoredFileName,
+            ContentType = i.ContentType,
+            ImageIndex = i.ImageIndex,
+            Url = i.Url
+        }).ToList() ?? new();
+    }
+
+    private async Task SaveDetailChanges()
+    {
+        if (selectedProduct is null || isSaving) return;
+
+        if (string.IsNullOrWhiteSpace(selectedProduct.Product_Code))
+        {
+            selectedProduct.Product_Code = selectedProduct.Product_id.ToString();
+        }
+
+        if (string.IsNullOrWhiteSpace(selectedProduct.Product_Name))
+        {
+            ToastSvc.Notify(new(ToastType.Danger, "El nombre del producto es obligatorio."));
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(selectedProduct.Product_Type))
+        {
+            ToastSvc.Notify(new(ToastType.Danger, "La categoría es obligatoria."));
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(selectedProduct.Unidad))
+        {
+            ToastSvc.Notify(new(ToastType.Danger, "La unidad es obligatoria."));
+            return;
+        }
+        if (selectedProduct.Price <= 0)
+        {
+            ToastSvc.Notify(new(ToastType.Danger, "El precio debe ser mayor a cero."));
+            return;
+        }
+
+        isSaving = true;
+        StateHasChanged();
+        try
+        {
+            var res = await Api.UpdateProductWithDetailsAsync(selectedProduct.Product_id, selectedProduct);
+            if (res.Success)
+            {
+                // Subir fotos elegidas en detalle (al editar también puedo poner las fotos)
+                var imageErrors = new List<string>();
+                var existingByIndex = selectedProduct.Images
+                    .Where(i => i.Id > 0)
+                    .GroupBy(i => i.ImageIndex)
+                    .ToDictionary(g => g.Key, g => g.First());
+                for (int slot = 0; slot < 3; slot++)
+                {
+                    var img = detailImages[slot];
+                    if (img is not null)
+                    {
+                        try
+                        {
+                            var base64 = Convert.ToBase64String(img.Value.Data);
+                            var existing = existingByIndex.TryGetValue(slot, out var ei) ? ei : detailExistingImageIds.ElementAtOrDefault(slot).HasValue ? new ApiProductService.ProductImage { Id = detailExistingImageIds[slot]!.Value } : null;
+                            bool imgOk;
+                            if (existing is not null && existing.Id > 0)
+                            {
+                                imgOk = await Api.UpdateProductImageAsync(existing.Id, base64, img.Value.FileName, img.Value.ContentType);
+                                if (!imgOk)
+                                    imgOk = await Api.AddProductImageAsync(selectedProduct.Product_id, base64, img.Value.FileName, img.Value.ContentType, slot);
+                            }
+                            else
+                            {
+                                imgOk = await Api.AddProductImageAsync(selectedProduct.Product_id, base64, img.Value.FileName, img.Value.ContentType, slot);
+                            }
+                            if (!imgOk)
+                                imageErrors.Add($"foto {slot + 1}");
+                        }
+                        catch (Exception ex)
+                        {
+                            imageErrors.Add($"foto {slot + 1} ({ex.Message})");
+                        }
+                    }
+                    else if (slot < detailImageRemoved.Length && detailImageRemoved[slot] && slot < detailExistingImageIds.Length && detailExistingImageIds[slot].HasValue)
+                    {
+                        try
+                        {
+                            var delOk = await Api.DeleteProductImageAsync(detailExistingImageIds[slot]!.Value);
+                            if (!delOk)
+                                imageErrors.Add($"foto {slot + 1} (eliminar)");
+                        }
+                        catch (Exception ex)
+                        {
+                            imageErrors.Add($"foto {slot + 1} ({ex.Message})");
+                        }
+                    }
+                }
+
+                if (imageErrors.Count == 0)
+                    ToastSvc.Notify(new(ToastType.Success, "Cambios guardados en la base de datos."));
+                else
+                    ToastSvc.Notify(new(ToastType.Warning, $"Producto guardado, pero no se pudo guardar: {string.Join(", ", imageErrors)}."));
+                detailBackup = null;
+                detailImages = new (string, string, byte[])?[3];
+                detailImageRemoved = new bool[3];
+                detailExistingImageIds = new int?[3];
+                isDetailEditing = false;
+                var keepId = selectedProduct.Product_id;
+                await LoadProducts();
+                var refreshed = await Api.GetProductAsync(keepId);
+                if (refreshed is not null && products is not null)
+                {
+                    var idx = products.FindIndex(p => p.Product_id == keepId);
+                    if (idx >= 0) products[idx] = refreshed; else products.Add(refreshed);
+                }
+                Buscar();
+                selectedProduct = products?.FirstOrDefault(p => p.Product_id == keepId) ?? refreshed ?? selectedProduct;
+                await LoadDetailImagesAsync();
+            }
+            else
+            {
+                var msg = string.IsNullOrWhiteSpace(res.Error)
+                    ? "No se pudieron guardar los cambios. Revisa que la API esté disponible (http://localhost:5220)."
+                    : $"Error en base de datos / API: {res.Error}";
+                ToastSvc.Notify(new(ToastType.Danger, msg));
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastSvc.Notify(new(ToastType.Danger, $"Error inesperado al guardar: {ex.Message}"));
+        }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteSelectedProduct()
+    {
+        if (selectedProduct is null)
+        {
+            ToastSvc.Notify(new(ToastType.Danger, "Seleccione un producto para eliminar."));
+            return;
+        }
+        await Delete(selectedProduct);
+    }
+
+    private async Task Delete(ApiProductService.Product p)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"¿Eliminar producto {p.Product_Name}?");
+        if (!confirmed) return;
+
+        var ok = await Api.DeleteProductAsync(p.Product_id);
+        if (ok)
+        {
+            ToastSvc.Notify(new(ToastType.Success, "Producto eliminado."));
+            await LoadProducts();
+            Buscar();
+        }
+        else
+        {
+            ToastSvc.Notify(new(ToastType.Danger, "No se pudo eliminar el producto."));
+        }
+    }
+
+    private async Task ExportToExcel()
+    {
+        var list = productsFiltered?.ToList() ?? new();
+        if (list.Count == 0)
+        {
+            ToastSvc.Notify(new(ToastType.Warning, "No hay productos para exportar."));
+            return;
+        }
+
+        try
+        {
+            using var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("Productos");
+
+            worksheet.Cell(1, 1).Value = "Product ID";
+            worksheet.Cell(1, 2).Value = "Product Code";
+            worksheet.Cell(1, 3).Value = "Nombre";
+            worksheet.Cell(1, 4).Value = "Categoría";
+            worksheet.Cell(1, 5).Value = "Unidad";
+            worksheet.Cell(1, 6).Value = "Marca";
+            worksheet.Cell(1, 7).Value = "Código de barras";
+            worksheet.Cell(1, 8).Value = "Precio";
+            worksheet.Cell(1, 9).Value = "Costo";
+            worksheet.Cell(1, 10).Value = "Stock";
+            worksheet.Cell(1, 11).Value = "Stock mínimo";
+            worksheet.Cell(1, 12).Value = "Stock máximo";
+            worksheet.Cell(1, 13).Value = "Activo";
+            worksheet.Range(1, 1, 1, 13).Style.Font.Bold = true;
+
+            var row = 2;
+            foreach (var p in list)
+            {
+                worksheet.Cell(row, 1).Value = p.Product_id;
+                worksheet.Cell(row, 2).Value = p.Product_Code;
+                worksheet.Cell(row, 3).Value = p.Product_Name;
+                worksheet.Cell(row, 4).Value = p.Product_Type;
+                worksheet.Cell(row, 5).Value = p.Unidad;
+                worksheet.Cell(row, 6).Value = p.Marca;
+                worksheet.Cell(row, 7).Value = p.Codebar;
+                worksheet.Cell(row, 8).Value = p.Price;
+                worksheet.Cell(row, 9).Value = p.Costo;
+                worksheet.Cell(row, 10).Value = p.Stock;
+                worksheet.Cell(row, 11).Value = p.Stock_Mix;
+                worksheet.Cell(row, 12).Value = p.Stock_Max;
+                worksheet.Cell(row, 13).Value = p.IsActive ? "Sí" : "No";
+                row++;
+            }
+
+            worksheet.Columns().AdjustToContents();
+            worksheet.SheetView.FreezeRows(1);
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            var content = stream.ToArray();
+
+            await JS.InvokeVoidAsync("downloadFile", $"Productos_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx", Convert.ToBase64String(content));
+            ToastSvc.Notify(new(ToastType.Success, $"Exportados {list.Count} productos a Excel."));
+        }
+        catch (Exception ex)
+        {
+            ToastSvc.Notify(new(ToastType.Danger, $"Error al exportar: {ex.Message}"));
+        }
+    }
+
+    private static DateTime? GetFechaCreacion(ApiProductService.Product p) => p.CreatedAt ?? p.CreatedDate ?? p.DateCreated ?? p.CreatedOn ?? p.FechaCreacion ?? p.FechaCreado;
+    private static string? GetUsuarioCreacion(ApiProductService.Product p) => p.CreatedBy ?? p.CreatedByUser ?? p.CreatedByName ?? p.UsuarioCreacion ?? p.UsuarioCreado;
+    private static DateTime? GetFechaModificacion(ApiProductService.Product p) => p.UpdatedAt ?? p.UpdatedDate ?? p.DateUpdated ?? p.DateModified ?? p.ModifiedOn ?? p.LastModified ?? p.LastUpdated ?? p.FechaModificacion ?? p.FechaActualizacion;
+    private static string? GetUsuarioModificacion(ApiProductService.Product p) => p.UpdatedBy ?? p.UpdatedByUser ?? p.UpdatedByName ?? p.ModifiedBy ?? p.ModifiedByName ?? p.UsuarioModificacion ?? p.UsuarioActualizacion;
+    private static string FmtAuditDate(DateTime? value) => value.HasValue ? value.Value.ToString("dd/MM/yyyy HH:mm:ss") : "-";
+
+    private static string FormatModalPrice(double value) => value.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("es-DO"));
+    private void OnModalPriceChanged(string? value)
+    {
+        if (TryParseDecimalFlexible(value, out var d))
+            editProduct.Price = d;
+    }
+
+    private static bool TryParseDecimalFlexible(string? value, out double result)
+    {
+        result = 0;
+        if (string.IsNullOrWhiteSpace(value)) return true;
+        var s = value.Trim().Replace(" ", "").Replace("RD$", "", StringComparison.OrdinalIgnoreCase);
+        var hasComma = s.Contains(',');
+        var hasDot = s.Contains('.');
+        if (hasComma && hasDot)
+        {
+            if (s.LastIndexOf(',') > s.LastIndexOf('.'))
+                s = s.Replace(".", "").Replace(',', '.');
+            else
+                s = s.Replace(",", "");
+        }
+        else if (hasComma)
+        {
+            s = s.Replace(',', '.');
+        }
+        return double.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out result);
+    }
+}

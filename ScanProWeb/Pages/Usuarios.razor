@@ -1,0 +1,323 @@
+﻿@page "/usuarios"
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using Microsoft.AspNetCore.Components.Forms
+@inject ApiUserService Api
+@inject IJSRuntime JS
+
+<PageTitle>Usuarios</PageTitle>
+
+<h1>Usuarios</h1>
+
+<div class="navbar navbar-expand-lg navbar-light bg-light px-3 mb-3">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary" @onclick="OpenNew"><Icon Name="IconName.PersonPlus" Class="me-1" /> Nuevo usuario</button>
+        </div>
+        <div class="d-flex align-items-center gap-2" style="max-width: 400px;">
+            <strong>buscar por filtro:</strong>
+            <div class="d-flex">
+                <input type="text" class="form-control me-2" placeholder="Buscar..." @bind="searchText" @onkeydown="HandleKeyDown" />
+                <button class="btn btn-primary" @onclick="Buscar"><Icon Name="IconName.Search" /></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (users is null)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <QuickGrid Items="filteredUsers.AsQueryable()" Pagination="pagination" Class="table table-striped">
+        <PropertyColumn Property="@(u => u.Id)" Title="Id" />
+        <TemplateColumn Title="Foto">
+            @if (!string.IsNullOrWhiteSpace(context.PhotoData) && context.PhotoData.StartsWith("data:image/"))
+            {
+                <img src="@context.PhotoData" alt="Foto de @context.UserName" class="rounded-circle" style="width:36px;height:36px;object-fit:cover;border:1px solid #dee2e6;" />
+            }
+            else
+            {
+                <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-secondary text-white fw-semibold" style="width:36px;height:36px;">@((context.UserName ?? "?").Trim().FirstOrDefault(char.IsLetterOrDigit) is char c ? c.ToString().ToUpper() : "?")</span>
+            }
+        </TemplateColumn>
+        <PropertyColumn Property="@(u => u.UserName)" Title="Usuario" />
+        <PropertyColumn Property="@(u => u.Email)" Title="Email" />
+        <PropertyColumn Property="@(u => u.Nickname)" Title="Nickname" />
+        <TemplateColumn Title="Roles">
+            @string.Join(", ", context.Roles ?? new())
+        </TemplateColumn>
+        <TemplateColumn Title="Acciones">
+            <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => OpenEdit(context)">
+                <Icon Name="IconName.Pencil" />
+            </button>
+            <button class="btn btn-sm btn-outline-danger" @onclick="() => Delete(context)">
+                <Icon Name="IconName.Trash" />
+            </button>
+        </TemplateColumn>
+    </QuickGrid>
+
+    <div class="d-flex justify-content-between align-items-center mt-1">
+        <div class="col-3">
+            <strong>Items por Page:</strong>
+            <select @bind="pagination.ItemsPerPage" class="form-select">
+                <option>5</option>
+                <option>10</option>
+                <option>15</option>
+                <option>20</option>
+                <option>50</option>
+            </select>
+        </div>
+        <Paginator State="pagination" />
+    </div>
+}
+
+<Modal @ref="createModal" Title="Nuevo usuario">
+    <BodyTemplate>
+        <div class="mb-2 text-center">
+            <label class="form-label d-block">Foto</label>
+            <div class="d-inline-block position-relative" style="cursor:pointer" @onclick="TriggerNewPhoto">
+                @if (!string.IsNullOrWhiteSpace(newPhotoPreview))
+                {
+                    <img src="@newPhotoPreview" alt="Foto" class="rounded-circle" style="width:96px;height:96px;object-fit:cover;border:2px dashed #dee2e6;padding:4px;" />
+                }
+                else
+                {
+                    <div class="d-flex flex-column align-items-center justify-content-center rounded-circle bg-light text-muted" style="width:96px;height:96px;border:2px dashed #dee2e6;">
+                        <span class="fs-3">📷</span><span class="small">Clic para elegir</span>
+                    </div>
+                }
+                <InputFile id="newUserPhotoInput" @ref="newPhotoInput" OnChange="(e) => OnNewPhotoSelected(e)" accept="image/*" hidden />
+            </div>
+            @if (!string.IsNullOrWhiteSpace(newPhotoPreview))
+            {
+                <div><button class="btn btn-sm btn-outline-danger mt-1" type="button" @onclick="RemoveNewPhoto">Quitar foto</button></div>
+            }
+        </div>
+        <div class="mb-2"><label>Usuario</label><input class="form-control" @bind="newUser.UserName" /></div>
+        <div class="mb-2"><label>Email</label><input class="form-control" @bind="newUser.Email" /></div>
+        <div class="mb-2"><label>Nickname</label><input class="form-control" @bind="newUser.Nickname" /></div>
+        <div class="mb-2"><label>Password</label><input type="password" class="form-control" @bind="newUser.Password" /></div>
+        <div class="mb-2"><label>Rol</label>
+            <select class="form-select" @bind="newUser.Role">
+                <option>User</option><option>Admin</option><option>Invitado</option>
+            </select>
+        </div>
+    </BodyTemplate>
+    <FooterTemplate>
+        <button class="btn btn-secondary" @onclick="CloseCreate"><Icon Name="IconName.XCircle" Class="me-1" /> Cancelar</button>
+        <button class="btn btn-primary" @onclick="SaveNew"><Icon Name="IconName.FloppyFill" Class="me-1" /> Guardar</button>
+    </FooterTemplate>
+</Modal>
+
+<Modal @ref="editModal" Title="Editar usuario">
+    <BodyTemplate>
+        <div class="mb-2 text-center">
+            <label class="form-label d-block">Foto</label>
+            <div class="d-inline-block position-relative" style="cursor:pointer" @onclick="TriggerEditPhoto">
+                @if (!string.IsNullOrWhiteSpace(editPhotoPreview))
+                {
+                    <img src="@editPhotoPreview" alt="Foto" class="rounded-circle" style="width:96px;height:96px;object-fit:cover;border:2px dashed #dee2e6;padding:4px;" />
+                }
+                else
+                {
+                    <div class="d-flex flex-column align-items-center justify-content-center rounded-circle bg-light text-muted" style="width:96px;height:96px;border:2px dashed #dee2e6;">
+                        <span class="fs-3">📷</span><span class="small">Clic para cambiar</span>
+                    </div>
+                }
+                <InputFile id="editUserPhotoInput" @ref="editPhotoInput" OnChange="(e) => OnEditPhotoSelected(e)" accept="image/*" hidden />
+            </div>
+            @if (!string.IsNullOrWhiteSpace(editPhotoPreview))
+            {
+                <div><button class="btn btn-sm btn-outline-danger mt-1" type="button" @onclick="RemoveEditPhoto">Quitar foto</button></div>
+            }
+        </div>
+        <div class="mb-2"><label>Usuario</label><input class="form-control" @bind="editUser.UserName" /></div>
+        <div class="mb-2"><label>Email</label><input class="form-control" @bind="editUser.Email" /></div>
+        <div class="mb-2"><label>Nickname</label><input class="form-control" @bind="editUser.Nickname" /></div>
+        <div class="mb-2"><label>Nueva contraseña (opcional)</label><input type="password" class="form-control" @bind="editUser.NewPassword" placeholder="dejar vacío para no cambiar" /></div>
+        <div class="mb-2"><label>Rol</label>
+            <select class="form-select" @bind="editUser.Role">
+                <option>User</option><option>Admin</option><option>Invitado</option>
+            </select>
+        </div>
+    </BodyTemplate>
+    <FooterTemplate>
+        <button class="btn btn-secondary" @onclick="CloseEdit"><Icon Name="IconName.XCircle" Class="me-1" /> Cancelar</button>
+        <button class="btn btn-primary" @onclick="SaveEdit"><Icon Name="IconName.FloppyFill" Class="me-1" /> Guardar</button>
+    </FooterTemplate>
+</Modal>
+
+@code {
+    private List<ApiUserService.UserDto>? users;
+    private IEnumerable<ApiUserService.UserDto> filteredUsers = new List<ApiUserService.UserDto>();
+    private string searchText = string.Empty;
+    private PaginationState pagination = new() { ItemsPerPage = 10 };
+    private Modal? createModal;
+    private Modal? editModal;
+    private InputFile? newPhotoInput = null;
+    private InputFile? editPhotoInput = null;
+    private string? newPhotoPreview = null;
+    private string? editPhotoPreview = null;
+    private ApiUserService.UserCreateDto newUser = new();
+    private ApiUserService.UserUpdateDto editUser = new();
+    private int editingId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        users = await Api.GetUsersAsync();
+        filteredUsers = users ?? new();
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") Buscar();
+    }
+
+    private void Buscar()
+    {
+        if (users is null) return;
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            filteredUsers = users;
+            pagination.ItemsPerPage = 10;
+            return;
+        }
+        filteredUsers = users.Where(u =>
+            (u.UserName ?? "").Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+            (u.Email ?? "").Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+            (u.Nickname ?? "").Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+            (u.Roles != null && u.Roles.Any(r => r.Contains(searchText, StringComparison.OrdinalIgnoreCase))));
+        if (!filteredUsers.Any()) return;
+        pagination.ItemsPerPage = filteredUsers.Count();
+    }
+
+    private async Task OpenNew()
+    {
+        newUser = new();
+        newPhotoPreview = null;
+        if (createModal is not null) await createModal.ShowAsync();
+    }
+
+    private async Task CloseCreate()
+    {
+        if (createModal is not null) await createModal.HideAsync();
+    }
+
+    private async Task SaveNew()
+    {
+        newUser.PhotoData = newPhotoPreview;
+        var ok = await Api.CreateUserAsync(newUser);
+        if (ok)
+        {
+            users = await Api.GetUsersAsync();
+            filteredUsers = users ?? new();
+            if (createModal is not null) await createModal.HideAsync();
+        }
+    }
+
+    private async Task TriggerNewPhoto()
+    {
+        try { await JS.InvokeVoidAsync("eval", "document.getElementById('newUserPhotoInput')?.click()"); } catch { }
+    }
+
+    private async Task TriggerEditPhoto()
+    {
+        try { await JS.InvokeVoidAsync("eval", "document.getElementById('editUserPhotoInput')?.click()"); } catch { }
+    }
+
+    private async Task OnNewPhotoSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+        try
+        {
+            var buffer = new byte[file.Size];
+            using var stream = file.OpenReadStream(maxAllowedSize: 2_000_000);
+            var totalRead = 0;
+            var remaining = (int)Math.Min(file.Size, 2_000_000);
+            while (remaining > 0)
+            {
+                var read = await stream.ReadAsync(buffer, totalRead, remaining);
+                if (read == 0) break;
+                totalRead += read;
+                remaining -= read;
+            }
+            var base64 = Convert.ToBase64String(buffer, 0, totalRead);
+            newPhotoPreview = $"data:{file.ContentType};base64,{base64}";
+            StateHasChanged();
+        }
+        catch { }
+    }
+
+    private async Task OnEditPhotoSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+        try
+        {
+            var buffer = new byte[file.Size];
+            using var stream = file.OpenReadStream(maxAllowedSize: 2_000_000);
+            var totalRead = 0;
+            var remaining = (int)Math.Min(file.Size, 2_000_000);
+            while (remaining > 0)
+            {
+                var read = await stream.ReadAsync(buffer, totalRead, remaining);
+                if (read == 0) break;
+                totalRead += read;
+                remaining -= read;
+            }
+            var base64 = Convert.ToBase64String(buffer, 0, totalRead);
+            editPhotoPreview = $"data:{file.ContentType};base64,{base64}";
+            StateHasChanged();
+        }
+        catch { }
+    }
+
+    private void RemoveNewPhoto() => newPhotoPreview = null;
+    private void RemoveEditPhoto() => editPhotoPreview = null;
+
+    private async Task OpenEdit(ApiUserService.UserDto u)
+    {
+        editingId = u.Id;
+        editUser = new ApiUserService.UserUpdateDto
+        {
+            UserName = u.UserName ?? "",
+            Email = u.Email ?? "",
+            Nickname = u.Nickname ?? "",
+            Role = u.Roles?.FirstOrDefault() ?? "User",
+            PhotoData = u.PhotoData
+        };
+        editPhotoPreview = u.PhotoData;
+        if (editModal is not null) await editModal.ShowAsync();
+    }
+
+    private async Task CloseEdit()
+    {
+        if (editModal is not null) await editModal.HideAsync();
+    }
+
+    private async Task SaveEdit()
+    {
+        editUser.PhotoData = editPhotoPreview;
+        var ok = await Api.UpdateUserAsync(editingId, editUser);
+        if (ok)
+        {
+            users = await Api.GetUsersAsync();
+            filteredUsers = users ?? new();
+            if (editModal is not null) await editModal.HideAsync();
+        }
+    }
+
+    private async Task Delete(ApiUserService.UserDto u)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"¿Eliminar usuario {u.UserName}?");
+        if (!confirmed) return;
+        var ok = await Api.DeleteUserAsync(u.Id);
+        if (ok)
+        {
+            users = await Api.GetUsersAsync();
+            filteredUsers = users ?? new();
+        }
+    }
+}

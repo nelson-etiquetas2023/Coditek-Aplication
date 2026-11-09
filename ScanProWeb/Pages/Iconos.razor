@@ -1,0 +1,35 @@
+﻿@page "/iconos"
+
+<PageTitle>Almacén de Iconos</PageTitle>
+
+<h1>Almacén de Iconos (BlazorBootstrap)</h1>
+
+<p>Explora los iconos disponibles en la librería BlazorBootstrap. Haz clic en un nombre para copiarlo.</p>
+
+<div class="mb-3">
+    <input class="form-control" placeholder="Filtrar por nombre..." @bind="filtro" @bind:event="oninput" />
+</div>
+
+<div class="row g-2">
+    @foreach (var name in NombresFiltrados)
+    {
+        <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+            <div class="card text-center p-2">
+                <div class="mb-1">
+                    <Icon Name="name" />
+                </div>
+                <small class="text-muted">@name</small>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private string filtro = string.Empty;
+
+    private IEnumerable<IconName> NombresFiltrados =>
+        Enum.GetValues<IconName>()
+            .Cast<IconName>()
+            .Where(n => string.IsNullOrWhiteSpace(filtro) ||
+                        n.ToString().Contains(filtro, StringComparison.OrdinalIgnoreCase));
+}

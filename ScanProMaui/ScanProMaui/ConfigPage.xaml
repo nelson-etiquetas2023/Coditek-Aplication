@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xam"
+             x:Class="CodixLabels.ConfigPage"
+             Title="Configuración"
+             BackgroundColor="{StaticResource BackgroundColor}">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Nueva" Order="Primary"
+                     Clicked="OnNewClicked"
+                     IconImage="plus.png" />
+        <ToolbarItem Text="Buscar" Order="Secondary"
+                     Clicked="OnSearchClicked"
+                     IconImage="search.png" />
+    </ToolbarItem>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="10">
+            <Label Text="Configuración"
+                   FontAttributes="Bold"
+                   FontSize="20"
+                   TextColor="{StaticResource PrimaryColor}"
+                   HorizontalOptions="Start"
+                   Margin="0, 0, 0, 10" />
+
+            <Entry x:Name="SearchEntry"
+                   Placeholder="Buscar por clave o valor..."
+                   TextChanged="OnSearchChanged"
+                   Margin="0, 0, 0, 10"
+                   FontSize="14" />
+
+            <QuickGrid x:Name="ConfigsGrid"
+                       ItemsSource="{Binding Configs}"
+                       SelectionMode="None"
+                       VerticalScrollBarVisibility="Default"
+                       RowHeight="40">
+                <QuickGrid.Columns>
+                    <PropertyColumn Property="Id" Title="Id" />
+                    <PropertyColumn Property="Key" Título="Clave" />
+                    <PropertyColumn Property="Value" Título="Valor" />
+                    <PropertyColumn Property="Description" Título="Descripción" />
+                </QuickGrid.Columns>
+
+                <QuickGrid.Footer>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Picker x:Name="ItemsPerPagePickerConfig"
+                                SelectedIndexChanged="OnItemsPerPageChangedConfig"
+                                VerticalOptions="Center" />
+                        <Button Text="Eliminar Seleccionados"
+                                Clicked="OnDeleteSelectedConfig"
+                                Grid.Column="1"
+                                HorizontalOptions="End" />
+                    </Grid>
+                </QuickGrid.Footer>
+            </QuickGrid>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

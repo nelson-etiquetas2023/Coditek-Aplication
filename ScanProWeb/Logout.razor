@@ -1,0 +1,15 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@inject CustomAuthStateProvider AuthState
+@inject NavigationManager Nav
+
+<button class="btn btn-outline-danger btn-sm" @onclick="HandleLogout">
+    <Icon Name="IconName.Power" /> Cerrar Sesión
+</button>
+
+@code {
+    private async Task HandleLogout()
+    {
+        await AuthState.MarkUserAsLoggedOut();
+        Nav.NavigateTo("/login");
+    }
+}

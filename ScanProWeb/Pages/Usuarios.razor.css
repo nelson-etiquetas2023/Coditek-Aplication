@@ -1,0 +1,29 @@
+::deep tr {
+    height: auto;
+    min-height: 0;
+}
+
+::deep tbody tr:not(:has(td:not(:empty))) {
+    display: none;
+}
+
+::deep td:empty {
+    display: none;
+}
+::deep .paginator {
+    margin-top: 0.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+::deep .paginator button {
+    padding: 4px 10px;
+    border-radius: 4px;
+}
+
+::deep .pagination-text {
+    font-weight: bold;
+    margin: 0 10px;
+}

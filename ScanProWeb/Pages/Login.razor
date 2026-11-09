@@ -1,0 +1,287 @@
+﻿@page "/"
+@page "/login"
+@layout EmptyLayout
+@using Microsoft.AspNetCore.Authorization
+@attribute [AllowAnonymous]
+@inject IHttpClientFactory Factory
+@inject CustomAuthStateProvider AuthState
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<PageTitle>Login</PageTitle>
+
+<div class="login-page">
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="company-logo">
+                    <div class="logo-icon"><img src="/LOGO.jpeg" alt="Logo" /></div>
+                </div>
+                <h2>Bienvenido</h2>
+                <p>Inicie sesión en su cuenta corporativa</p>
+            </div>
+
+            @if (AttemptsRemaining > 0)
+            {
+                @if (!string.IsNullOrWhiteSpace(errorMessage))
+                {
+                    <div class="error-message show">@errorMessage</div>
+                }
+
+                <EditForm Model="user" OnValidSubmit="HandleLogin" class="login-form">
+                    <DataAnnotationsValidator />
+
+                    <div class="form-group">
+                        <label class="floating-label">Correo o nickname</label>
+                        <InputText @bind-Value="user.Identifier" class="form-input" placeholder="admin" autofocus />
+                        <ValidationMessage For="@(() => user.Identifier)" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="floating-label">Contraseña</label>
+                        <InputText @bind-Value="user.Password" class="form-input" type="password" placeholder="Ingrese su contraseña" />
+                        <ValidationMessage For="@(() => user.Password)" />
+                    </div>
+
+                    <div class="form-options">
+                        <div class="remember-wrapper">
+                            <input type="checkbox" id="remember" @bind="_remember" />
+                            <label for="remember" class="checkbox-label">
+                                <span class="checkbox-custom"></span>
+                                Mantener sesión iniciada
+                            </label>
+                        </div>
+                        <a href="#" class="forgot-password" @onclick="ShowResetHint" @onclick:preventDefault>Restablecer contraseña</a>
+                    </div>
+
+                    <button type="submit" class="login-btn @(_isBusy ? "loading" : "")" disabled="@_isBusy"><span class="btn-text">Ingresar</span><span class="btn-loader"></span></button>
+                </EditForm>
+
+                <div class="divider">
+                    <span>o ingrese con</span>
+                </div>
+
+                <div class="sso-options">
+                    <button type="button" class="sso-btn register-btn" @onclick="ShowRegister">
+                        <span class="sso-icon register-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="8.5" cy="7" r="4"></circle>
+                                <line x1="20" y1="8" x2="20" y2="14"></line>
+                                <line x1="23" y1="11" x2="17" y2="11"></line>
+                            </svg>
+                        </span>
+                        <span>Registrar nuevo usuario</span>
+                    </button>
+                </div>
+
+                <div class="corp-attempts">
+                    Intentos restantes: <strong>@AttemptsRemaining de @MaxAttempts</strong>
+                </div>
+            }
+            else
+            {
+                <div class="corp-locked">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <h3>Sistema bloqueado</h3>
+                    <p>Se superaron los 5 intentos permitidos.</p>
+                </div>
+            }
+
+            <div class="footer-links">
+                <a href="#" class="footer-link">Política de Privacidad</a>
+                <span class="separator">•</span>
+                <a href="#" class="footer-link">Términos de Servicio</a>
+                <span class="separator">•</span>
+                <a href="#" class="footer-link">Soporte</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private const int MaxAttempts = 5;
+
+    private UserLogin user = new();
+    private string? errorMessage;
+    private bool _isBusy;
+    private bool _remember = false;
+    private int AttemptsRemaining = MaxAttempts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var failedStr = await JS.InvokeAsync<string?>("localStorage.getItem", "loginAttempts");
+            var failed = 0;
+            if (!string.IsNullOrWhiteSpace(failedStr))
+                int.TryParse(failedStr, out failed);
+            if (failed < 0) failed = 0;
+            if (failed > MaxAttempts) failed = MaxAttempts;
+            AttemptsRemaining = MaxAttempts - failed;
+        }
+        catch
+        {
+            AttemptsRemaining = MaxAttempts;
+        }
+
+        try
+        {
+            var remembered = await JS.InvokeAsync<string?>("localStorage.getItem", "rememberedIdentifier");
+            if (!string.IsNullOrWhiteSpace(remembered))
+            {
+                user.Identifier = remembered;
+            }
+        }
+        catch
+        {
+            // JS interop no disponible (prerendering)
+        }
+
+        if (AttemptsRemaining <= 0)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("localStorage.setItem", "systemLocked", "true");
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    private void ShowResetHint(MouseEventArgs e)
+    {
+        errorMessage = "Contacte al administrador para restablecer su contraseña.";
+        StateHasChanged();
+    }
+
+    private void ShowRegister()
+    {
+        errorMessage = "Contacte al administrador para registrar un nuevo usuario.";
+        StateHasChanged();
+    }
+
+    private async Task DecrementAttemptsAsync()
+    {
+        AttemptsRemaining--;
+        if (AttemptsRemaining < 0) AttemptsRemaining = 0;
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", "loginAttempts", (MaxAttempts - AttemptsRemaining).ToString());
+        }
+        catch
+        {
+        }
+        if (AttemptsRemaining <= 0)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("localStorage.setItem", "systemLocked", "true");
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        if (_isBusy) return;
+        _isBusy = true;
+        errorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(user.Identifier))
+            {
+                errorMessage = "Ingrese correo o nickname.";
+                await DecrementAttemptsAsync();
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(user.Password))
+            {
+                errorMessage = "Ingrese contraseña.";
+                await DecrementAttemptsAsync();
+                return;
+            }
+
+            var client = Factory.CreateClient("API");
+            var res = await client.PostAsJsonAsync("api/auth/login", new { Identifier = user.Identifier, Password = user.Password });
+
+            if (!res.IsSuccessStatusCode)
+            {
+                errorMessage = "Credenciales incorrectas.";
+                await DecrementAttemptsAsync();
+                return;
+            }
+
+            var data = await res.Content.ReadFromJsonAsync<LoginResponse>();
+            if (string.IsNullOrEmpty(data?.Data))
+            {
+                errorMessage = "No se recibió token.";
+                await DecrementAttemptsAsync();
+                return;
+            }
+
+            try
+            {
+                await JS.InvokeVoidAsync("localStorage.setItem", "authToken", data.Data);
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                await JS.InvokeVoidAsync("localStorage.setItem", "loginAttempts", "0");
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                if (_remember)
+                {
+                    await JS.InvokeVoidAsync("localStorage.setItem", "rememberedIdentifier", user.Identifier);
+                }
+                else
+                {
+                    await JS.InvokeVoidAsync("localStorage.removeItem", "rememberedIdentifier");
+                }
+            }
+            catch
+            {
+            }
+
+            await AuthState.MarkUserAsAuthenticated(data.Data);
+            user = new UserLogin();
+            Nav.NavigateTo("/home");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "No se pudo contactar el servidor.";
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            _isBusy = false;
+            StateHasChanged();
+        }
+    }
+
+    public class UserLogin
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Identifier { get; set; } = "";
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Password { get; set; } = "";
+    }
+
+    public class LoginResponse { public bool Success { get; set; } public string? Message { get; set; } public string? Data { get; set; } }
+}

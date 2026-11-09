@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Maui">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <MauiVersion>9.0</MauiVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <MauiResource Include="Resources\Themes\Generic.xaml" />
+    <MauiResource Include="Resources\fonts\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Maui.Controls" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Maui.Diagnostics" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Maui.Xaml" Version="9.0.0" />
+  </ItemGroup>
+
+</Project>

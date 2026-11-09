@@ -1,0 +1,407 @@
+@page "/etiquetas"
+@using BlazorBootstrap
+@using Microsoft.AspNetCore.Components.Forms
+@inject ApiLabelService Api
+@inject IJSRuntime JS
+@inject ToastService ToastSvc
+
+<PageTitle>Etiquetas</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0"><Icon Name="IconName.UpcScan" Size="IconSize.x2" /> Etiquetas</h2>
+    <button class="btn btn-primary" type="button" @onclick="OpenNew" disabled="@isBusy">
+        <Icon Name="IconName.PlusLg" /> Nueva etiqueta
+    </button>
+</div>
+
+@if (!string.IsNullOrEmpty(loadError))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @loadError
+        <button type="button" class="btn-close" @onclick="() => loadError = string.Empty"></button>
+    </div>
+}
+
+@if (loading)
+{
+    <div class="d-flex align-items-center gap-2 text-muted">
+        <div class="spinner-border spinner-border-sm" role="status"></div>
+        <span>Cargando etiquetas...</span>
+    </div>
+}
+else
+{
+    <div class="d-flex gap-3 etiquetas-layout">
+        <!-- 30%: búsqueda + grid -->
+        <div class="etiquetas-grid">
+            <div class="card h-100">
+                <div class="card-body p-2 d-flex flex-column">
+                    <div class="input-group input-group-sm mb-2">
+                        <span class="input-group-text"><Icon Name="IconName.Search" /></span>
+                        <input class="form-control" placeholder="Buscar por ID, nombre o descripción..." @bind="searchText" @bind:event="oninput" />
+                    </div>
+                    <div class="small text-muted mb-2">
+                        <strong>Total:</strong> @labels.Count &nbsp;|&nbsp; <strong>Mostrados:</strong> @FilteredLabels.Count()
+                    </div>
+                    <div class="table-responsive etiquetas-scroll">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:56px">ID</th>
+                                    <th>Nombre</th>
+                                    <th style="width:90px">Rollo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!FilteredLabels.Any())
+                                {
+                                    <tr><td colspan="3" class="text-muted text-center py-3">Sin resultados</td></tr>
+                                }
+                                else
+                                {
+                                    @foreach (var l in FilteredLabels)
+                                    {
+                                        var isSelected = selected?.Id == l.Id;
+                                        <tr class="@(isSelected ? "table-primary" : "")" style="cursor:pointer" @onclick="() => SelectLabel(l)">
+                                            <td>@l.Id</td>
+                                            <td>
+                                                <div class="fw-semibold text-truncate" style="max-width:180px" title="@l.Nombre">@l.Nombre</div>
+                                                <div class="small text-muted text-truncate" style="max-width:180px" title="@l.Descripcion">@l.Descripcion</div>
+                                            </td>
+                                            <td>@l.CantidadPorRollo</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 70%: detalle + preview -->
+        <div class="etiquetas-detail">
+            <div class="card h-100">
+                @if (selected is null)
+                {
+                    <div class="card-body d-flex align-items-center justify-content-center text-muted">
+                        <div class="text-center">
+                            <Icon Name="IconName.UpcScan" Size="IconSize.x4" />
+                            <div class="mt-2">Selecciona una etiqueta o crea una nueva.</div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="card-header d-flex justify-content-between align-items-center py-2">
+                        <div>
+                            <strong>@selected.Nombre</strong>
+                            <span class="text-muted small ms-2">ID: @selected.Id</span>
+                        </div>
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-sm btn-outline-primary" type="button" @onclick="() => OpenEdit(selected)" disabled="@isBusy"><Icon Name="IconName.Pencil" /> Editar</button>
+                            <button class="btn btn-sm btn-outline-danger" type="button" @onclick="() => ConfirmDelete(selected)" disabled="@isBusy"><Icon Name="IconName.Trash" /> Borrar</button>
+                        </div>
+                    </div>
+                    <div class="card-body p-2">
+                        <ul class="nav nav-tabs mb-2">
+                            <li class="nav-item"><button class="nav-link @(detailTab == "detalle" ? "active" : "")" type="button" @onclick='() => detailTab = "detalle"'>Detalle</button></li>
+                            <li class="nav-item"><button class="nav-link @(detailTab == "preview" ? "active" : "")" type="button" @onclick='() => { detailTab = "preview"; _ = RenderPreviewAsync(); }'>Vista previa / ZPL</button></li>
+                        </ul>
+
+                        @if (detailTab == "detalle")
+                        {
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <label class="form-label small text-muted mb-0">Nombre</label>
+                                    <div class="fw-semibold">@selected.Nombre</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small text-muted mb-0">Ancho (mm)</label>
+                                    <div>@selected.WidthMm</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small text-muted mb-0">Largo (mm)</label>
+                                    <div>@selected.LengthMm</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small text-muted mb-0">Cantidad por rollo</label>
+                                    <div>@selected.CantidadPorRollo</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small text-muted mb-0">Densidad (dpmm)</label>
+                                    <div>@selected.Dpmm (@(selected.Dpmm * 25) dpi aprox.)</div>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small text-muted mb-0">Descripción</label>
+                                    <div>@(string.IsNullOrWhiteSpace(selected.Descripcion) ? "—" : selected.Descripcion)</div>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small text-muted mb-0">Código ZPL</label>
+                                    <pre class="bg-light border rounded p-2 small mb-0" style="max-height:220px; overflow:auto; white-space:pre-wrap;">@selected.CodigoZpl</pre>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="row g-2">
+                                <div class="col-lg-5">
+                                    <label class="form-label small fw-semibold">Código ZPL</label>
+                                    <textarea class="form-control font-monospace small" rows="14" @bind="selected.CodigoZpl"></textarea>
+                                    <div class="mt-2 d-flex gap-2 align-items-center flex-wrap">
+                                        <button class="btn btn-sm btn-primary" type="button" @onclick="RenderPreviewAsync" disabled="@previewLoading">
+                                            @if (previewLoading) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                            <Icon Name="IconName.Eye" /> Previsualizar
+                                        </button>
+                                        <span class="small text-muted">@selected.WidthMm × @selected.LengthMm mm, @selected.Dpmm dpmm</span>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(previewError))
+                                    {
+                                        <div class="alert alert-warning small mt-2 mb-0 py-1">@previewError</div>
+                                    }
+                                </div>
+                                <div class="col-lg-7">
+                                    <label class="form-label small fw-semibold">Vista previa (Labelary)</label>
+                                    <div class="border rounded bg-white d-flex align-items-center justify-content-center p-2" style="min-height:280px;">
+                                        @if (previewLoading)
+                                        {
+                                            <div class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span> Renderizando...</div>
+                                        }
+                                        else if (!string.IsNullOrEmpty(previewDataUrl))
+                                        {
+                                            <img src="@previewDataUrl" alt="Vista previa etiqueta" style="max-width:100%; max-height:360px; object-fit:contain;" />
+                                        }
+                                        else
+                                        {
+                                            <div class="text-muted small text-center">Haz clic en <strong>Previsualizar</strong> para renderizar el ZPL.<br /><span class="text-secondary">Requiere API disponible (proxy a Labelary).</span></div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<Modal @ref="editModal" Title="@(editingId == 0 ? "Nueva etiqueta" : "Editar etiqueta")" Size="ModalSize.Large">
+    <BodyTemplate>
+        <EditForm Model="@editModel" OnValidSubmit="SaveAsync">
+            <DataAnnotationsValidator />
+            <div class="row g-2">
+                <div class="col-md-8">
+                    <label class="form-label">Nombre de la etiqueta *</label>
+                    <InputText class="form-control" @bind-Value="editModel.Nombre" />
+                    <ValidationMessage For="() => editModel.Nombre" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Cantidad por rollo</label>
+                    <InputNumber class="form-control" @bind-Value="editModel.CantidadPorRollo" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Descripción</label>
+                    <InputText class="form-control" @bind-Value="editModel.Descripcion" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Ancho (mm) *</label>
+                    <InputNumber class="form-control" @bind-Value="editModel.WidthMm" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Largo (mm) *</label>
+                    <InputNumber class="form-control" @bind-Value="editModel.LengthMm" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Densidad (dpmm)</label>
+                    <InputSelect class="form-select" @bind-Value="editModel.Dpmm">
+                        <option value="6">6 (152 dpi)</option>
+                        <option value="8">8 (203 dpi)</option>
+                        <option value="12">12 (300 dpi)</option>
+                        <option value="24">24 (600 dpi)</option>
+                    </InputSelect>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="button" class="btn btn-outline-secondary w-100" @onclick="InsertSampleZpl"><Icon Name="IconName.FileCode" /> ZPL ejemplo</button>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Código ZPL *</label>
+                    <InputTextArea class="form-control font-monospace" rows="10" @bind-Value="editModel.CodigoZpl" />
+                    <div class="form-text">Debe iniciar con <code>^XA</code> y terminar con <code>^XZ</code>. Ajusta <code>^PW</code>/<code>^LL</code> según tamaño y dpmm.</div>
+                </div>
+            </div>
+            <div class="d-flex justify-content-end gap-2 mt-3">
+                <button type="button" class="btn btn-secondary" @onclick="CloseEdit" disabled="@isBusy"><Icon Name="IconName.XCircle" /> Cancelar</button>
+                <button type="submit" class="btn btn-primary" disabled="@isBusy">
+                    @if (isBusy) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                    <Icon Name="IconName.FloppyFill" /> Guardar
+                </button>
+            </div>
+        </EditForm>
+    </BodyTemplate>
+</Modal>
+
+<style>
+    .etiquetas-layout { min-height: 520px; }
+    .etiquetas-grid { flex: 0 0 calc(30% - 8px); min-width: 260px; }
+    .etiquetas-detail { flex: 0 0 calc(70% - 8px); min-width: 320px; }
+    .etiquetas-scroll { max-height: 420px; overflow-y: auto; }
+</style>
+
+@code {
+    private List<ApiLabelService.LabelTemplateDto> labels = [];
+    private ApiLabelService.LabelTemplateDto? selected;
+    private string searchText = "";
+    private bool loading = true;
+    private bool isBusy;
+    private string loadError = "";
+    private string detailTab = "detalle";
+
+    private Modal? editModal;
+    private ApiLabelService.LabelTemplateDto editModel = new();
+    private int editingId;
+
+    private bool previewLoading;
+    private string? previewDataUrl;
+    private string previewError = "";
+
+    private IEnumerable<ApiLabelService.LabelTemplateDto> FilteredLabels
+    {
+        get
+        {
+            var q = (searchText ?? "").Trim();
+            if (string.IsNullOrEmpty(q)) return labels;
+            return labels.Where(l =>
+                l.Id.ToString().Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                (l.Nombre ?? "").Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                (l.Descripcion ?? "").Contains(q, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync(int? selectId = null)
+    {
+        loading = true;
+        loadError = "";
+        try
+        {
+            labels = await Api.GetAllAsync();
+            if (selectId.HasValue)
+                selected = labels.FirstOrDefault(l => l.Id == selectId.Value) ?? labels.FirstOrDefault();
+            else if (selected is not null)
+                selected = labels.FirstOrDefault(l => l.Id == selected.Id) ?? labels.FirstOrDefault();
+            else
+                selected = labels.FirstOrDefault();
+            previewDataUrl = null;
+            previewError = "";
+        }
+        catch (Exception ex) { loadError = $"Error al cargar etiquetas: {ex.Message}"; }
+        finally { loading = false; }
+    }
+
+    private void SelectLabel(ApiLabelService.LabelTemplateDto l)
+    {
+        selected = l;
+        detailTab = "detalle";
+        previewDataUrl = null;
+        previewError = "";
+    }
+
+    private async Task OpenNew()
+    {
+        editingId = 0;
+        editModel = new ApiLabelService.LabelTemplateDto { Dpmm = 8, WidthMm = 50, LengthMm = 25, CantidadPorRollo = 1000 };
+        InsertSampleZpl();
+        if (editModal is not null) await editModal.ShowAsync();
+    }
+
+    private async Task OpenEdit(ApiLabelService.LabelTemplateDto l)
+    {
+        editingId = l.Id;
+        editModel = new ApiLabelService.LabelTemplateDto
+        {
+            Id = l.Id, Nombre = l.Nombre, Descripcion = l.Descripcion,
+            WidthMm = l.WidthMm, LengthMm = l.LengthMm,
+            CantidadPorRollo = l.CantidadPorRollo, CodigoZpl = l.CodigoZpl, Dpmm = l.Dpmm
+        };
+        if (editModal is not null) await editModal.ShowAsync();
+    }
+
+    private async Task CloseEdit() { if (editModal is not null) await editModal.HideAsync(); }
+
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(editModel.Nombre)) { ToastSvc.Notify(new(ToastType.Danger, "El nombre es obligatorio.")); return; }
+        if (editModel.WidthMm <= 0 || editModel.LengthMm <= 0) { ToastSvc.Notify(new(ToastType.Danger, "Ancho y largo deben ser mayores a 0.")); return; }
+        if (string.IsNullOrWhiteSpace(editModel.CodigoZpl)) { ToastSvc.Notify(new(ToastType.Danger, "El código ZPL es obligatorio.")); return; }
+
+        isBusy = true;
+        try
+        {
+            var res = editingId == 0
+                ? await Api.CreateAsync(editModel)
+                : await Api.UpdateAsync(editingId, editModel);
+
+            if (!res.Success)
+            {
+                ToastSvc.Notify(new(ToastType.Danger, res.Error ?? "No se pudo guardar."));
+                return;
+            }
+
+            await CloseEdit();
+            await LoadAsync(res.Data?.Id ?? editingId);
+            ToastSvc.Notify(new(ToastType.Success, "Etiqueta guardada."));
+        }
+        finally { isBusy = false; }
+    }
+
+    private async Task ConfirmDelete(ApiLabelService.LabelTemplateDto l)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"¿Eliminar la etiqueta '{l.Nombre}' (ID {l.Id})?")) return;
+        isBusy = true;
+        try
+        {
+            var res = await Api.DeleteAsync(l.Id);
+            if (!res.Success) { ToastSvc.Notify(new(ToastType.Danger, res.Error ?? "No se pudo eliminar.")); return; }
+            if (selected?.Id == l.Id) selected = null;
+            await LoadAsync();
+            ToastSvc.Notify(new(ToastType.Success, "Etiqueta eliminada."));
+        }
+        finally { isBusy = false; }
+    }
+
+    private async Task RenderPreviewAsync()
+    {
+        if (selected is null || string.IsNullOrWhiteSpace(selected.CodigoZpl)) { previewError = "No hay ZPL para previsualizar."; return; }
+        if (selected.WidthMm <= 0 || selected.LengthMm <= 0) { previewError = "Dimensiones inválidas."; return; }
+
+        previewLoading = true;
+        previewError = "";
+        previewDataUrl = null;
+        StateHasChanged();
+        try
+        {
+            var req = new ApiLabelService.RenderRequest(selected.CodigoZpl, selected.WidthMm, selected.LengthMm, selected.Dpmm > 0 ? selected.Dpmm : 8);
+            var res = await Api.RenderPreviewAsync(req);
+            if (res.Success) previewDataUrl = res.DataUrl;
+            else previewError = res.Error ?? "No se pudo renderizar.";
+        }
+        finally { previewLoading = false; }
+    }
+
+    private void InsertSampleZpl()
+    {
+        var dpmm = editModel.Dpmm > 0 ? editModel.Dpmm : 8;
+        var pwDots = Math.Max(1, (int)Math.Round(editModel.WidthMm * dpmm));
+        var llDots = Math.Max(1, (int)Math.Round(editModel.LengthMm * dpmm));
+        var name = string.IsNullOrWhiteSpace(editModel.Nombre) ? "Etiqueta" : editModel.Nombre;
+        editModel.CodigoZpl = $@"^XA
+^PW{pwDots}
+^LL{llDots}
+^CF0,30
+^FO20,20^FD{name}^FS
+^FO20,60^BCN,60,Y,N,N^FD1234567890^FS
+^XZ";
+    }
+}

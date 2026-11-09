@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xam"
+             x:Class="ScanProMaui.App">
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/Generic.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Colores de la paleta Pantone CODIX-LABELS -->
+            <Color x:Key="Primary">#195CCD</Color>
+            <Color x:Key="PrimaryDark">#071D48</Color>
+            <Color x:Key="PrimaryDarker">#031127</Color>
+            <Color x:Key="Secondary">#B4D6EA</Color>
+            <Color x:Key="Background">#FFFFFF</Color>
+            <Color x:Key="Surface">#F4F8FC</Color>
+            <Color x:Key="TextPrimary">#031127</Color>
+            <Color x:Key="TextSecondary">#4A5A7A</Color>
+            <Color x:Key="Border">#B4D6EA</Color>
+
+            <!-- Estilos adicionales -->
+            <Style x:Key="ToolbarItemStyle" TargetType="ToolbarItem">
+                <Setter Property="TextColor" Value="{StaticResource Primary}" />
+            </Style>
+
+            <Style x:Key="CardViewStyle" TargetType="View">
+                <Setter Property="BackgroundColor" Value="{StaticResource Background}" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="Padding" Value="12" />
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

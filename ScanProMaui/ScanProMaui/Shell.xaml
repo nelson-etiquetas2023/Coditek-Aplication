@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Shell xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2009/xam"
+       xmlns:local="clr-namespace:CodixLabels"
+       FlyoutHeader="CODIXLABELS"
+       FlyoutDisplayOptions="AsMultipleItems">
+
+    <FlyoutItem Title="Productos" Route="products" Image="product.png">
+        <Shell.FlyoutItemTemplate>
+            <DataTemplate>
+                <ShellContent Route="products" ContentTemplate="{DataTemplate local:ProductsPage}" />
+            </ShellContent>
+        </Shell.FlyoutItemTemplate>
+    </FlyoutItem>
+
+    <FlyoutItem Title="Config" Route="config" Image="config.png">
+        <Shell.FlyoutItemTemplate>
+            <DataTemplate>
+                <ShellContent Route="config" ContentTemplate="{DataTemplate local:ConfigPage}" />
+            </ShellContent>
+        </Shell.FlyoutItemTemplate>
+    </FlyoutItem>
+
+    <FlyoutItem Title="Usuarios" Route="users" Image="users.png">
+        <Shell.FlyoutItemTemplate>
+            <DataTemplate>
+                <ShellContent Route="users" ContentTemplate="{DataTemplate local:UsersPage}" />
+            </ShellContent>
+        </Shell.FlyoutItemTemplate>
+    </FlyoutItem>
+
+    <ShellContent Route="/" ContentTemplate="{DataTemplate local:MainPage}" />
+</Shell>

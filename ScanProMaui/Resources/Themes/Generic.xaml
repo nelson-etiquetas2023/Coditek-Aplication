@@ -1,0 +1,38 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Colors from the logo-based palette -->
+    <Color x:Key="Primary">#195CCD</Color>
+    <Color x:Key="PrimaryDark">#071D48</Color>
+    <Color x:Key="PrimaryDarker">#031127</Color>
+    <Color x:Key="Secondary">#B4D6EA</Color>
+    <Color x:Key="Background">White</Color>
+    <Color x:Key="Surface">#F4F8FC</Color>
+    <Color x:Key="TextPrimary">#031127</Color>
+    <Color x:Key="TextSecondary">#4A5A7A</Color>
+    <Color x:Key="Border">#B4D6EA</Color>
+
+    <!-- Derived colors for MAUI pages -->
+    <Color x:Key="BackgroundColor">White</Color>
+    <Color x:Key="PrimaryColor">#195CCD</Color>
+    <Color x:Key="TextColor">#031127</Color>
+
+    <!-- Button styles -->
+    <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+        <Setter Property="TextColor" Value="White" />
+        <Setter Property="FontAttributes" Value="Bold" />
+    </Style>
+
+    <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="{StaticResource Secondary}" />
+        <Setter Property="TextColor" Value="#031127" />
+        <Setter Property="FontAttributes" Value="Bold" />
+    </Style>
+
+    <Style x:Key="SecondaryEntryStyle" TargetType="Entry">
+        <Setter Property="BackgroundColor" Value="{StaticResource Surface}" />
+        <Setter Property="TextColor" Value="{StaticResource TextPrimary}" />
+    </Style>
+
+</ResourceDictionary>

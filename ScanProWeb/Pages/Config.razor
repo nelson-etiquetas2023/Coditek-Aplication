@@ -1,0 +1,152 @@
+﻿@page "/config"
+@using Microsoft.AspNetCore.Components.QuickGrid
+@inject ApiConfigService Api
+@inject IJSRuntime JS
+
+<PageTitle>Configuración</PageTitle>
+
+<h1>Configuración</h1>
+
+<div class="navbar navbar-expand-lg navbar-light bg-light px-3 mb-3">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+        <div class="d-flex gap-2"><button class="btn btn-primary" @onclick="OpenNew"><Icon Name="IconName.Gear" Class="me-1" /> Nueva configuración</button></div>
+        <div class="d-flex align-items-center gap-2"><strong>buscar por filtro:</strong><input type="text" class="form-control me-2" placeholder="Buscar..." @bind="searchText" @onkeydown="HandleKeyDown" /><button class="btn btn-primary" @onclick="Buscar"><Icon Name="IconName.Search" /></button></div>
+    </div>
+</div>
+
+@if (configs is null)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <QuickGrid Items="filteredConfigs.AsQueryable()" Pagination="pagination" Class="table table-striped">
+        <PropertyColumn Property="@(c => c.Id)" Title="Id" />
+        <PropertyColumn Property="@(c => c.Key)" Title="Clave" />
+        <PropertyColumn Property="@(c => c.Value)" Title="Valor" />
+        <PropertyColumn Property="@(c => c.Description)" Title="Descripción" />
+        <TemplateColumn Title="Acciones">
+            <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => OpenEdit(context)"> <Icon Name="IconName.Pencil" /> </button>
+            <button class="btn btn-sm btn-outline-danger" @onclick="() => Delete(context)"> <Icon Name="IconName.Trash" /> </button>
+        </TemplateColumn>
+    </QuickGrid>
+    <div class="d-flex justify-content-between align-items-center mt-1">
+        <div class="col-3"><strong>Items por Page:</strong><select @bind="pagination.ItemsPerPage" class="form-select"><option>5</option><option>10</option><option>15</option><option>20</option><option>50</option></select></div>
+        <Paginator State="pagination" />
+    </div>
+}
+
+<Modal @ref="createModal" Title="Nueva configuración">
+    <BodyTemplate>
+        <div class="mb-2"><label>Clave</label><input class="form-control" @bind="newConfig.Key" /></div>
+        <div class="mb-2"><label>Valor</label><input class="form-control" @bind="newConfig.Value" /></div>
+    </BodyTemplate>
+    <FooterTemplate>
+        <button class="btn btn-secondary" @onclick="CloseCreate"><Icon Name="IconName.XCircle" Class="me-1" /> Cancelar</button>
+        <button class="btn btn-primary" @onclick="SaveNew"><Icon Name="IconName.FloppyFill" Class="me-1" /> Guardar</button>
+    </FooterTemplate>
+</Modal>
+
+<Modal @ref="editModal" Title="Editar configuración">
+    <BodyTemplate>
+        <div class="mb-2"><label>Clave</label><input class="form-control" @bind="editConfig.Key" /></div>
+        <div class="mb-2"><label>Valor</label><input class="form-control" @bind="editConfig.Value" /></div>
+    </BodyTemplate>
+    <FooterTemplate>
+        <button class="btn btn-secondary" @onclick="CloseEdit"><Icon Name="IconName.XCircle" Class="me-1" /> Cancelar</button>
+        <button class="btn btn-primary" @onclick="SaveEdit"><Icon Name="IconName.FloppyFill" Class="me-1" /> Guardar</button>
+    </FooterTemplate>
+</Modal>
+
+@code {
+    private Modal? createModal;
+    private Modal? editModal;
+    private List<ApiConfigService.ConfigDto>? configs;
+    private IEnumerable<ApiConfigService.ConfigDto> filteredConfigs = new List<ApiConfigService.ConfigDto>();
+    private ApiConfigService.ConfigDto newConfig = new();
+    private ApiConfigService.ConfigDto editConfig = new();
+    private int editingId;
+    private string searchText = string.Empty;
+    private PaginationState pagination = new() { ItemsPerPage = 10 };
+
+    protected override async Task OnInitializedAsync()
+    {
+        configs = await Api.GetConfigsAsync();
+        filteredConfigs = configs ?? new();
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") Buscar();
+    }
+
+    private void Buscar()
+    {
+        if (configs is null) return;
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            filteredConfigs = configs;
+            pagination.ItemsPerPage = 10;
+            return;
+        }
+        filteredConfigs = configs.Where(u => (u.Key ?? "").Contains(searchText, StringComparison.OrdinalIgnoreCase) || (u.Value ?? "").Contains(searchText, StringComparison.OrdinalIgnoreCase));
+        if (!filteredConfigs.Any()) return;
+        pagination.ItemsPerPage = filteredConfigs.Count();
+    }
+
+    private async Task OpenNew()
+    {
+        if (createModal is not null) await createModal.ShowAsync();
+    }
+
+    private async Task CloseCreate()
+    {
+        if (createModal is not null) await createModal.HideAsync();
+    }
+
+    private async Task SaveNew()
+    {
+        var dto = await Api.CreateConfigAsync(newConfig);
+        if (dto is not null)
+        {
+            configs = await Api.GetConfigsAsync();
+            filteredConfigs = configs ?? new();
+            if (createModal is not null) await createModal.HideAsync();
+        }
+    }
+
+    private async Task OpenEdit(ApiConfigService.ConfigDto u)
+    {
+        editingId = u.Id;
+        editConfig = new ApiConfigService.ConfigDto { Key = u.Key, Value = u.Value, Description = u.Description };
+        if (editModal is not null) await editModal.ShowAsync();
+    }
+
+    private async Task CloseEdit()
+    {
+        if (editModal is not null) await editModal.HideAsync();
+    }
+
+    private async Task SaveEdit()
+    {
+        var result = await Api.UpdateConfigAsync(editingId, editConfig);
+        if (result is not null)
+        {
+            configs = await Api.GetConfigsAsync();
+            filteredConfigs = configs ?? new();
+            if (editModal is not null) await editModal.HideAsync();
+        }
+    }
+
+    private async Task Delete(ApiConfigService.ConfigDto u)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"¿Eliminar configuración {u.Key}?");
+        if (!confirmed) return;
+        var ok = await Api.DeleteConfigAsync(u.Id);
+        if (ok)
+        {
+            configs = await Api.GetConfigsAsync();
+            filteredConfigs = configs ?? new();
+        }
+    }
+}

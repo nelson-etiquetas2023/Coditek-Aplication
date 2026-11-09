@@ -1,0 +1,307 @@
+@inject ApiConfigService service
+@inject IJSRuntime JS
+@inject ToastService ToastSvc
+
+<Modal @ref="modal" Size="ModalSize.Large">
+    <HeaderTemplate><Icon Name="IconName.Gear" Size="IconSize.x3" /><strong> @title</strong></HeaderTemplate>
+    <BodyTemplate>
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger py-2" role="alert">@errorMessage</div>
+        }
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <input class="form-control me-2" placeholder="Buscar..." @bind="searchText" @bind:event="oninput" />
+            <button class="btn btn-primary" type="button" @onclick="NewItem"><Icon Name="IconName.Plus" /> Nuevo</button>
+        </div>
+
+        @if (mode == ManagerMode.Category)
+        {
+            @if (showForm)
+            {
+                <div class="border rounded p-3 mb-3 bg-light">
+                    <div class="row">
+                        <div class="col-md-5 mb-2">
+                            <label class="form-label">Nombre *</label>
+                            <input class="form-control" @bind="editingCategory.Name" />
+                        </div>
+                        <div class="col-md-5 mb-2">
+                            <label class="form-label">Descripción</label>
+                            <input class="form-control" @bind="editingCategory.Description" />
+                        </div>
+                        <div class="col-md-2 mb-2 d-flex align-items-end">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" @bind="editingCategory.IsActive" id="manCatActivo" />
+                                <label class="form-check-label" for="manCatActivo">Activa</label>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-success" type="button" @onclick="SaveCategory">Guardar</button>
+                    <button class="btn btn-secondary" type="button" @onclick="CancelItem">Cancelar</button>
+                </div>
+            }
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0" style="table-layout: fixed; width: 100%;">
+                    <colgroup>
+                        <col style="width: 28%;" />
+                        <col style="width: 42%;" />
+                        <col style="width: 14%;" />
+                        <col style="width: 16%;" />
+                    </colgroup>
+                    <thead class="table-light">
+                        <tr>
+                            <th class="py-2">Nombre</th>
+                            <th class="py-2">Descripción</th>
+                            <th class="py-2">Estado</th>
+                            <th class="py-2 text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var category in FilteredCategories)
+                        {
+                            <tr @ondblclick="() => SelectCategory(category)" title="Doble clic para seleccionar" style="cursor:pointer;">
+                                <td class="py-2 fw-semibold text-truncate" title="@category.Name">@(string.IsNullOrWhiteSpace(category.Name) ? "\u00A0" : category.Name)</td>
+                                <td class="py-2 text-truncate" title="@category.Description">@(string.IsNullOrWhiteSpace(category.Description) ? "\u00A0" : category.Description)</td>
+                                <td class="py-2"><span class="badge @(category.IsActive ? "bg-success" : "bg-secondary")">@(category.IsActive ? "Activa" : "Inactiva")</span></td>
+                                <td class="py-2 text-end text-nowrap">
+                                    <button class="btn btn-sm btn-link px-1 py-0" type="button" @onclick="() => EditCategory(category)">Editar</button>
+                                    <button class="btn btn-sm btn-link px-1 py-0" type="button" @onclick="() => DeleteCategory(category)">Eliminar</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            @if (showForm)
+            {
+                <div class="border rounded p-3 mb-3 bg-light">
+                    <div class="row">
+                        <div class="col-md-5 mb-2">
+                            <label class="form-label">Nombre *</label>
+                            <input class="form-control" @bind="editingUnit.Name" />
+                        </div>
+                        <div class="col-md-5 mb-2">
+                            <label class="form-label">Descripción</label>
+                            <input class="form-control" @bind="editingUnit.Description" />
+                        </div>
+                        <div class="col-md-2 mb-2 d-flex align-items-end">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" @bind="editingUnit.IsActive" id="manUnitActivo" />
+                                <label class="form-check-label" for="manUnitActivo">Activa</label>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-success" type="button" @onclick="SaveUnit">Guardar</button>
+                    <button class="btn btn-secondary" type="button" @onclick="CancelItem">Cancelar</button>
+                </div>
+            }
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0" style="table-layout: fixed; width: 100%;">
+                    <colgroup>
+                        <col style="width: 28%;" />
+                        <col style="width: 42%;" />
+                        <col style="width: 14%;" />
+                        <col style="width: 16%;" />
+                    </colgroup>
+                    <thead class="table-light">
+                        <tr>
+                            <th class="py-2">Nombre</th>
+                            <th class="py-2">Descripción</th>
+                            <th class="py-2">Estado</th>
+                            <th class="py-2 text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var unit in FilteredUnits)
+                        {
+                            <tr @ondblclick="() => SelectUnit(unit)" title="Doble clic para seleccionar" style="cursor:pointer;">
+                                <td class="py-2 fw-semibold text-truncate" title="@unit.Name">@(string.IsNullOrWhiteSpace(unit.Name) ? "\u00A0" : unit.Name)</td>
+                                <td class="py-2 text-truncate" title="@unit.Description">@(string.IsNullOrWhiteSpace(unit.Description) ? "\u00A0" : unit.Description)</td>
+                                <td class="py-2"><span class="badge @(unit.IsActive ? "bg-success" : "bg-secondary")">@(unit.IsActive ? "Activa" : "Inactiva")</span></td>
+                                <td class="py-2 text-end text-nowrap">
+                                    <button class="btn btn-sm btn-link px-1 py-0" type="button" @onclick="() => EditUnit(unit)">Editar</button>
+                                    <button class="btn btn-sm btn-link px-1 py-0" type="button" @onclick="() => DeleteUnit(unit)">Eliminar</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </BodyTemplate>
+</Modal>
+
+@code {
+    private enum ManagerMode { Category, Unit }
+
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnCategorySelected { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnUnitSelected { get; set; }
+
+    private Modal modal = default!;
+    private ManagerMode mode;
+    private string title = "";
+    private string searchText = "";
+    private bool showForm;
+    private string errorMessage = "";
+
+    private List<ApiConfigService.CategoryDto> categories = [];
+    private ApiConfigService.CategoryDto editingCategory = new();
+
+    private List<ApiConfigService.ProductUnitDto> units = [];
+    private ApiConfigService.ProductUnitDto editingUnit = new();
+
+    private IEnumerable<ApiConfigService.CategoryDto> FilteredCategories => categories.Where(c =>
+        string.IsNullOrWhiteSpace(searchText) ||
+        c.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+        (c.Description ?? "").Contains(searchText, StringComparison.OrdinalIgnoreCase));
+
+    private IEnumerable<ApiConfigService.ProductUnitDto> FilteredUnits => units.Where(u =>
+        string.IsNullOrWhiteSpace(searchText) ||
+        u.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+        (u.Description ?? "").Contains(searchText, StringComparison.OrdinalIgnoreCase));
+
+    public async Task ShowCategoriesAsync()
+    {
+        mode = ManagerMode.Category;
+        title = "Gestión de categorías de productos";
+        searchText = "";
+        showForm = false;
+        errorMessage = "";
+        categories = await service.GetCategoriesAsync();
+        await modal.ShowAsync();
+    }
+
+    public async Task ShowUnitsAsync()
+    {
+        mode = ManagerMode.Unit;
+        title = "Gestión de unidades de productos";
+        searchText = "";
+        showForm = false;
+        errorMessage = "";
+        units = await service.GetProductUnitsAsync();
+        await modal.ShowAsync();
+    }
+
+    private void NewItem()
+    {
+        errorMessage = "";
+        if (mode == ManagerMode.Category)
+        {
+            editingCategory = new ApiConfigService.CategoryDto { IsActive = true };
+        }
+        else
+        {
+            editingUnit = new ApiConfigService.ProductUnitDto { IsActive = true };
+        }
+        showForm = true;
+    }
+
+    private void EditCategory(ApiConfigService.CategoryDto category)
+    {
+        errorMessage = "";
+        editingCategory = new ApiConfigService.CategoryDto { Id = category.Id, Name = category.Name, Description = category.Description, IsActive = category.IsActive };
+        showForm = true;
+    }
+
+    private void EditUnit(ApiConfigService.ProductUnitDto unit)
+    {
+        errorMessage = "";
+        editingUnit = new ApiConfigService.ProductUnitDto { Id = unit.Id, Name = unit.Name, Description = unit.Description, IsActive = unit.IsActive };
+        showForm = true;
+    }
+
+    private void CancelItem()
+    {
+        showForm = false;
+        errorMessage = "";
+    }
+
+    private async Task SaveCategory()
+    {
+        var isNew = editingCategory.Id == 0;
+        var saved = isNew
+            ? await service.CreateCategoryAsync(editingCategory)
+            : await service.UpdateCategoryAsync(editingCategory.Id, editingCategory);
+
+        if (saved == null)
+        {
+            errorMessage = "No se pudo guardar. Verifica que el nombre no esté repetido.";
+            return;
+        }
+
+        if (isNew) searchText = saved.Name?.Trim() ?? editingCategory.Name?.Trim() ?? string.Empty;
+        await ReloadAndNotify();
+    }
+
+    private async Task SaveUnit()
+    {
+        var isNew = editingUnit.Id == 0;
+        var saved = isNew
+            ? await service.CreateProductUnitAsync(editingUnit)
+            : await service.UpdateProductUnitAsync(editingUnit.Id, editingUnit);
+
+        if (saved == null)
+        {
+            errorMessage = "No se pudo guardar. Verifica que el nombre no esté repetido.";
+            return;
+        }
+
+        if (isNew) searchText = saved.Name?.Trim() ?? editingUnit.Name?.Trim() ?? string.Empty;
+        await ReloadAndNotify();
+    }
+
+    private async Task DeleteCategory(ApiConfigService.CategoryDto category)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"¿Eliminar la categoría '{category.Name}'?")) return;
+        if (await service.DeleteCategoryAsync(category.Id))
+        {
+            await ReloadAndNotify();
+        }
+    }
+
+    private async Task DeleteUnit(ApiConfigService.ProductUnitDto unit)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"¿Eliminar la unidad '{unit.Name}'?")) return;
+        if (await service.DeleteProductUnitAsync(unit.Id))
+        {
+            await ReloadAndNotify();
+        }
+    }
+
+    private async Task ReloadAndNotify()
+    {
+        showForm = false;
+        errorMessage = "";
+        if (mode == ManagerMode.Category)
+        {
+            categories = await service.GetCategoriesAsync();
+        }
+        else
+        {
+            units = await service.GetProductUnitsAsync();
+        }
+        await OnChanged.InvokeAsync();
+        StateHasChanged();
+    }
+
+    private async Task SelectCategory(ApiConfigService.CategoryDto category)
+    {
+        await OnCategorySelected.InvokeAsync(category.Name);
+        await modal.HideAsync();
+    }
+
+    private async Task SelectUnit(ApiConfigService.ProductUnitDto unit)
+    {
+        await OnUnitSelected.InvokeAsync(unit.Name);
+        await modal.HideAsync();
+    }
+}
