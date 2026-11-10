@@ -12,7 +12,7 @@
 
         <div class="d-flex justify-content-between align-items-center mb-3">
             <input class="form-control me-2" placeholder="Buscar..." @bind="searchText" @bind:event="oninput" />
-            <button class="btn btn-primary" type="button" @onclick="NewItem"><Icon Name="IconName.Plus" /> Nuevo</button>
+            <button class="btn border border-dark text-dark" style="background-color:#fff;" type="button" @onclick="NewItem"><Icon Name="IconName.Plus" /> Nuevo</button>
         </div>
 
         @if (mode == ManagerMode.Category)

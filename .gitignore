@@ -1,0 +1,25 @@
+## .NET / Visual Studio
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.cache
+*.log
+
+## Build outputs
+*.dll
+*.exe
+*.pdb
+*.wasm
+*.wasm.gz
+
+## Rider / VS Code (optional local)
+.idea/
+.vscode/
+
+## OS
+Thumbs.db
+.DS_Store

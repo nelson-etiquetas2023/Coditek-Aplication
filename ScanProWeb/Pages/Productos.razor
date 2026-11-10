@@ -20,16 +20,19 @@
         </div>
     </h2>
     <div class="d-flex gap-2">
-        <button class="btn btn-primary" type="button" @onclick="OpenNew">
+        <button class="btn border border-dark text-dark" style="background-color:#fff;" type="button" @onclick="OpenNew">
             <Icon Name="IconName.PlusLg" /> Nuevo
         </button>
-        <button class="btn btn-outline-danger" type="button" @onclick="DeleteSelectedProduct" disabled="@(selectedProduct is null)">
+        <button class="btn border border-dark text-dark" style="background-color:#fff;" type="button" @onclick="DeleteSelectedProduct" disabled="@(selectedProduct is null)">
             <Icon Name="IconName.Trash" /> Eliminar
         </button>
-        <button class="btn btn-success" type="button" @onclick="ExportToExcel">
+        <button class="btn border border-dark text-dark" style="background-color:#fff;" type="button" @onclick="DownloadTemplateExcel" title="Descargar plantilla Excel para carga masiva">
+            <Icon Name="IconName.FileEarmarkSpreadsheet" /> Plantilla
+        </button>
+        <button class="btn border border-dark text-dark" style="background-color:#fff;" type="button" @onclick="ExportToExcel">
             <Icon Name="IconName.FileEarmarkExcel" /> Exportar
         </button>
-        <button class="btn btn-outline-info" type="button" @onclick="OpenProductReport">
+        <button class="btn border border-dark text-dark" style="background-color:#fff;" type="button" @onclick="OpenProductReport">
             <Icon Name="IconName.BarChartFill" /> Reporte
         </button>
     </div>
@@ -137,8 +140,8 @@
 
     <div style="flex: 0 0 calc(70% - 8px); min-width: 0;">
         <div class="card h-100">
-            <div class="card-header">
-                <ul class="nav nav-tabs card-header-tabs" role="tablist">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <ul class="nav nav-tabs card-header-tabs mb-0" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link @ActiveClass("detalle")" type="button" role="tab" aria-selected='@AriaSelected("detalle")' @onclick='() => activeDetailTab = "detalle"'><Icon Name="IconName.FileText" /> Detalle</button>
                     </li>
@@ -149,6 +152,24 @@
                         <button class="nav-link @ActiveClass("etiqueta")" type="button" role="tab" aria-selected='@AriaSelected("etiqueta")' @onclick='() => activeDetailTab = "etiqueta"'><Icon Name="IconName.UpcScan" /> Etiqueta</button>
                     </li>
                 </ul>
+                @if (selectedProduct is not null)
+                {
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        @if (!isDetailEditing)
+                        {
+                            <button class="btn btn-sm btn-outline-primary" @onclick="StartDetailEdit"><Icon Name="IconName.Pencil" /> Editar</button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-success" @onclick="SaveDetailChanges" disabled="@isSaving"><Icon Name="IconName.FloppyFill" /> @(isSaving ? "Guardando..." : "Guardar")</button>
+                            <button class="btn btn-sm btn-secondary" @onclick="CancelDetailEdit" disabled="@isSaving"><Icon Name="IconName.XCircle" /> Cancelar</button>
+                        }
+                        <div class="form-check form-switch mb-0 ms-1">
+                            <input class="form-check-input" type="checkbox" role="switch" @bind="selectedProduct.IsActive" id="activoDetalle" disabled="@(!isDetailEditing)" />
+                            <label class="form-check-label fw-semibold small" for="activoDetalle">Activo</label>
+                        </div>
+                    </div>
+                }
             </div>
             <div class="card-body">
                 @if (selectedProduct is null)
@@ -157,57 +178,45 @@
                 }
                 else
                 {
-                    <div class="d-flex gap-2 mb-3">
-                        @if (!isDetailEditing)
-                        {
-                            <button class="btn btn-outline-primary" @onclick="StartDetailEdit"><Icon Name="IconName.Pencil" /> Editar</button>
-                        }
-                        else
-                        {
-                            <button class="btn btn-success" @onclick="SaveDetailChanges" disabled="@isSaving"><Icon Name="IconName.FloppyFill" /> @(isSaving ? "Guardando..." : "Guardar")</button>
-                            <button class="btn btn-secondary" @onclick="CancelDetailEdit" disabled="@isSaving"><Icon Name="IconName.XCircle" /> Cancelar</button>
-                        }
-                    </div>
-
-                    <div class="detail-photos mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="mb-0 fw-semibold">Fotos del producto (3)</h6>
-                            <small class="text-muted">@(isDetailEditing ? "Clic en cuadro para cambiar foto" : "Clic para ampliar")</small>
-                        </div>
-                        <div class="row g-2">
-                            @for (var i = 0; i < 3; i++)
-                            {
-                                var index = i;
-                                <div class="col-md-4">
-                                    <div class="detail-photo-box" @onclick="() => OnDetailPhotoClicked(index)" title="@(isDetailEditing ? "Clic para cambiar la foto" : "Clic para ampliar")">
-                                        @if (!string.IsNullOrWhiteSpace(detailImagePreviews[index]))
-                                        {
-                                            <img src="@detailImagePreviews[index]" alt="Foto @(index + 1)" class="detail-photo-img" />
-                                            @if (isDetailEditing)
-                                            {
-                                                <button type="button" class="btn-photo-zoom" @onclick:stopPropagation="true" @onclick="() => OpenPhotoViewerFor(detailImagePreviews, index)" title="Ampliar"><Icon Name="IconName.ZoomIn" /></button>
-                                                <button type="button" class="btn-remove-image" @onclick:stopPropagation="true" @onclick="() => RemoveDetailImage(index)" title="Quitar foto">✕</button>
-                                            }
-                                        }
-                                        else
-                                        {
-                                            <div class="detail-photo-placeholder">
-                                                <div class="fs-4">📷</div>
-                                                <div class="small fw-semibold">Foto @(index + 1)</div>
-                                                <div class="small text-muted">@(isDetailEditing ? "Clic para elegir" : "Sin imagen")</div>
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                        <InputFile @ref="detailFileInput" OnChange="OnDetailPhotoSelected" accept="image/*" hidden data-detail-photo />
-                        <div class="form-text mt-1">Fotos guardadas como archivo en el servidor (no URL). Edita con <strong>Editar</strong> para cambiarlas, luego <strong>Guardar</strong>; sin editar, clic para ampliar.</div>
-                    </div>
-
                     <fieldset disabled="@(!isDetailEditing)" style="border:0;padding:0;margin:0;min-width:0;">
                     @if (activeDetailTab == "detalle")
                     {
+                        <div class="detail-photos mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="mb-0 fw-semibold">Fotos del producto (3)</h6>
+                                <small class="text-muted">@(isDetailEditing ? "Clic en cuadro para cambiar foto" : "Clic para ampliar")</small>
+                            </div>
+                            <div class="row g-2">
+                                @for (var i = 0; i < 3; i++)
+                                {
+                                    var index = i;
+                                    <div class="col-md-4">
+                                        <div class="detail-photo-box" @onclick="() => OnDetailPhotoClicked(index)" title="@(isDetailEditing ? "Clic para cambiar la foto" : "Clic para ampliar")">
+                                            @if (!string.IsNullOrWhiteSpace(detailImagePreviews[index]))
+                                            {
+                                                <img src="@detailImagePreviews[index]" alt="Foto @(index + 1)" class="detail-photo-img" />
+                                                @if (isDetailEditing)
+                                                {
+                                                    <button type="button" class="btn-photo-zoom" @onclick:stopPropagation="true" @onclick="() => OpenPhotoViewerFor(detailImagePreviews, index)" title="Ampliar"><Icon Name="IconName.ZoomIn" /></button>
+                                                    <button type="button" class="btn-remove-image" @onclick:stopPropagation="true" @onclick="() => RemoveDetailImage(index)" title="Quitar foto">✕</button>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <div class="detail-photo-placeholder">
+                                                    <div class="fs-4">📷</div>
+                                                    <div class="small fw-semibold">Foto @(index + 1)</div>
+                                                    <div class="small text-muted">@(isDetailEditing ? "Clic para elegir" : "Sin imagen")</div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                            <InputFile @ref="detailFileInput" OnChange="OnDetailPhotoSelected" accept="image/*" hidden data-detail-photo />
+                            <div class="form-text mt-1">Fotos guardadas como archivo en el servidor (no URL). Edita con <strong>Editar</strong> para cambiarlas, luego <strong>Guardar</strong>; sin editar, clic para ampliar.</div>
+                        </div>
+
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <div class="mb-2">
@@ -224,7 +233,10 @@
                                 </div>
                                 <div class="mb-2">
                                     <label class="form-label small fw-semibold">Categoría</label>
-                                    <input class="form-control form-control-sm" type="text" @bind="selectedProduct.Product_Type" list="catListDetail" placeholder="Categoría" />
+                                    <div class="input-group input-group-sm">
+                                        <input class="form-control" type="text" @bind="selectedProduct.Product_Type" list="catListDetail" placeholder="Categoría" />
+                                        <button type="button" class="btn btn-outline-secondary" @onclick="OpenCategoryManager" title="Gestionar categorías" disabled="@(!isDetailEditing)"><Icon Name="IconName.Gear" /></button>
+                                    </div>
                                     <datalist id="catListDetail">
                                         @foreach (var c in categorias.Where(cat => cat.IsActive))
                                         {
@@ -232,15 +244,24 @@
                                         }
                                     </datalist>
                                 </div>
-                                <div class="mb-2">
-                                    <label class="form-label small fw-semibold">Unidad</label>
-                                    <input class="form-control form-control-sm" type="text" @bind="selectedProduct.Unidad" list="unitListDetail" placeholder="Unidad" />
-                                    <datalist id="unitListDetail">
-                                        @foreach (var u in unidades.Where(unit => unit.IsActive))
-                                        {
-                                            <option value="@u.Name" />
-                                        }
-                                    </datalist>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-6">
+                                        <label class="form-label small fw-semibold">Unidad</label>
+                                        <div class="input-group input-group-sm">
+                                            <input class="form-control" type="text" @bind="selectedProduct.Unidad" list="unitListDetail" placeholder="Unidad" />
+                                            <button type="button" class="btn btn-outline-secondary" @onclick="OpenUnitManager" title="Gestionar unidades" disabled="@(!isDetailEditing)"><Icon Name="IconName.Gear" /></button>
+                                        </div>
+                                        <datalist id="unitListDetail">
+                                            @foreach (var u in unidades.Where(unit => unit.IsActive))
+                                            {
+                                                <option value="@u.Name" />
+                                            }
+                                        </datalist>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small fw-semibold">Peso</label>
+                                        <input class="form-control form-control-sm" type="text" @bind="selectedProduct.Peso" />
+                                    </div>
                                 </div>
                                 <div class="mb-2">
                                     <label class="form-label small fw-semibold">Marca</label>
@@ -267,10 +288,6 @@
                                 <div class="mb-2">
                                     <label class="form-label small fw-semibold">Stock máximo</label>
                                     <input class="form-control form-control-sm" type="number" step="0.01" @bind="selectedProduct.Stock_Max" />
-                                </div>
-                                <div class="mb-2 form-check">
-                                    <input class="form-check-input" type="checkbox" @bind="selectedProduct.IsActive" id="activoDetalle" />
-                                    <label class="form-check-label" for="activoDetalle">Activo</label>
                                 </div>
                             </div>
                         </div>
@@ -461,7 +478,7 @@
         <div class="mt-4">
             <label class="form-label"><strong>📸 Fotos del producto (máx 3)</strong></label>
             <small class="text-muted d-block">Imágenes seleccionadas: <strong>@modalImages.Count(f => f is not null)/3</strong></small>
-            <p class="text-muted small">Haz clic en un cuadro vacío para abrir el explorador de archivos y elegir la foto, luego se previsualiza en el cuadro. Clic en una foto ocupada la elimina.</p>
+            <p class="text-muted small">Haz clic en un cuadro vacío para elegir la foto; clic en una foto ocupada la elimina.</p>
 
             <div class="row g-2 mt-2 mb-3">
                 @for (int i = 0; i < 3; i++)
@@ -474,17 +491,13 @@
                                 <div class="image-preview-area">
                                     <img src="@imagePreviews[i]" alt="Preview @(i+1)" class="img-preview" />
                                     <button type="button" class="btn-photo-zoom" @onclick:stopPropagation="true" @onclick="() => OpenPhotoViewerFor(imagePreviews, i)" title="Ampliar"><Icon Name="IconName.ZoomIn" /></button>
-                                    <button type="button" class="btn-remove-image" @onclick:stopPropagation="true" @onclick="() => RemoveImage(i)" title="Eliminar imagen">
-                                        ✕
-                                    </button>
+                                    <button type="button" class="btn-remove-image" @onclick:stopPropagation="true" @onclick="() => RemoveImage(i)" title="Eliminar imagen">✕</button>
                                 </div>
                                 <div class="image-info">
                                     <small class="text-success">✓ Imagen @(i + 1)</small>
                                     @if (!string.IsNullOrEmpty(imageNames[i]))
                                     {
-                                        <div class="text-truncate" title="@imageNames[i]">
-                                            <small>@imageNames[i]</small>
-                                        </div>
+                                        <div class="text-truncate" title="@imageNames[i]"><small>@imageNames[i]</small></div>
                                     }
                                 </div>
                             }
@@ -648,7 +661,7 @@
     private int detailNextImageSlot = 0;
     private InputFile detailFileInput = default!;
 
-    // Fotos: sin URL, como en ScanPro (archivo + vista previa en el cuadro)
+    // Fotos modal (agregar producto): sin URL, archivo + vista previa
     private InputFile fileInput = default!;
     private (string FileName, string ContentType, byte[] Data)?[] modalImages = new (string, string, byte[])?[3];
     private int?[] modalExistingImageIds = new int?[3];
@@ -656,6 +669,8 @@
     private string[] imagePreviews = new string[3];
     private string[] imageNames = new string[3];
     private int nextImageSlot = 0;
+
+    // Fotos (página de detalle): sin URL, archivo + vista previa
     private (string FileName, string ContentType, byte[] Data)?[] detailImages = new (string, string, byte[])?[3];
     private int?[] detailExistingImageIds = new int?[3];
     private bool[] detailImageRemoved = new bool[3];
@@ -716,13 +731,19 @@
 
     private void OnCategorySelectedFromManager(string name)
     {
-        editProduct.Product_Type = name;
+        if (isDetailEditing && selectedProduct is not null)
+            selectedProduct.Product_Type = name;
+        else
+            editProduct.Product_Type = name;
         StateHasChanged();
     }
 
     private void OnUnitSelectedFromManager(string name)
     {
-        editProduct.Unidad = name;
+        if (isDetailEditing && selectedProduct is not null)
+            selectedProduct.Unidad = name;
+        else
+            editProduct.Unidad = name;
         StateHasChanged();
     }
 
@@ -823,7 +844,6 @@
 
     private async Task ClickImageBox(int index)
     {
-        // Clic en cuadro ocupado -> eliminar; vacío -> abrir explorador de archivos (InputFile)
         if (!string.IsNullOrEmpty(imagePreviews[index]))
         {
             RemoveImage(index);
@@ -831,29 +851,18 @@
         else
         {
             nextImageSlot = index;
-            await OpenFileDialog();
-        }
-    }
-
-    private async Task OpenFileDialog()
-    {
-        try
-        {
-            if (fileInput != null)
+            try
             {
-                await JS.InvokeVoidAsync("eval", "document.getElementById('modalPhotoInput')?.click()");
+                if (fileInput != null)
+                    await JS.InvokeVoidAsync("eval", "document.getElementById('modalPhotoInput')?.click()");
             }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
+            catch (Exception ex) { Console.WriteLine($"Error: {ex.Message}"); }
         }
     }
 
     private async Task OnFileSelected(InputFileChangeEventArgs e)
     {
         var file = e.File;
-
         if (file != null && nextImageSlot >= 0 && nextImageSlot < 3)
         {
             try
@@ -866,13 +875,11 @@
                     while (remaining > 0)
                     {
                         var read = await stream.ReadAsync(buffer, totalRead, remaining);
-                        if (read == 0)
-                            break;
+                        if (read == 0) break;
                         totalRead += read;
                         remaining -= read;
                     }
                 }
-
                 var base64 = Convert.ToBase64String(buffer);
                 var contentType = file.ContentType ?? DetectContentType(file.Name);
                 imagePreviews[nextImageSlot] = $"data:{contentType};base64,{base64}";
@@ -881,18 +888,13 @@
                 if (nextImageSlot >= 0 && nextImageSlot < modalImageRemoved.Length) modalImageRemoved[nextImageSlot] = false;
                 StateHasChanged();
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error cargando archivo: {ex.Message}");
-            }
+            catch (Exception ex) { Console.WriteLine($"Error cargando archivo: {ex.Message}"); }
         }
     }
 
     private void RemoveImage(int index)
     {
-        if (index < 0 || index >= 3)
-            return;
-
+        if (index < 0 || index >= 3) return;
         imagePreviews[index] = string.Empty;
         imageNames[index] = string.Empty;
         modalImages[index] = null;
@@ -932,6 +934,7 @@
             Product_Name = "",
             Product_Type = "",
             Unidad = "",
+            Peso = "",
             Price = 0,
             Codebar = "",
             Costo = 0,
@@ -1015,56 +1018,15 @@
             bool ok;
             string? errorDetail = null;
             ApiProductService.Product? created = null;
-            var imageErrors = new List<string>();
 
             if (isEdit)
             {
                 var res = await Api.UpdateProductWithDetailsAsync(editingId, editProduct);
                 ok = res.Success;
                 errorDetail = res.Error;
-
-                if (ok)
-                {
-                    // Subir fotos nuevas: si el slot ya tenía imagen, actualizar; si no, agregar
-                    var existingByIndex = editProduct.Images
-                        .Where(i => i.Id > 0)
-                        .GroupBy(i => i.ImageIndex)
-                        .ToDictionary(g => g.Key, g => g.First());
-
-                    for (int slot = 0; slot < 3; slot++)
-                    {
-                        var img = modalImages[slot];
-                        if (img is null) continue;
-                        try
-                        {
-                            var base64 = Convert.ToBase64String(img.Value.Data);
-                            var existing = existingByIndex.TryGetValue(slot, out var ei) ? ei : null;
-                            bool imgOk;
-                            if (existing is not null)
-                            {
-                                imgOk = await Api.UpdateProductImageAsync(existing.Id, base64, img.Value.FileName, img.Value.ContentType);
-                                if (!imgOk)
-                                    imgOk = await Api.AddProductImageAsync(editingId, base64, img.Value.FileName, img.Value.ContentType, slot);
-                            }
-                            else
-                            {
-                                imgOk = await Api.AddProductImageAsync(editingId, base64, img.Value.FileName, img.Value.ContentType, slot);
-                            }
-                            if (!imgOk)
-                            {
-                                imageErrors.Add($"foto {slot + 1}");
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            imageErrors.Add($"foto {slot + 1} ({ex.Message})");
-                        }
-                    }
-                }
             }
             else
             {
-                // Crear con archivos multipart (ScanPro)
                 var uploads = modalImages
                     .Select((img, idx) => img is null ? null : new ApiProductService.ProductImageUpload { FileName = img.Value.FileName, ContentType = img.Value.ContentType, Data = img.Value.Data, Slot = idx })
                     .Where(u => u is not null)
@@ -1078,10 +1040,7 @@
 
             if (ok)
             {
-                if (isEdit && imageErrors.Count > 0)
-                    ToastSvc.Notify(new(ToastType.Warning, $"Producto guardado, pero no se pudo guardar: {string.Join(", ", imageErrors)}."));
-                else
-                    ToastSvc.Notify(new(ToastType.Success, isEdit ? "Producto actualizado en la base de datos." : "Producto guardado en la base de datos exitosamente."));
+                ToastSvc.Notify(new(ToastType.Success, isEdit ? "Producto actualizado en la base de datos." : "Producto guardado en la base de datos exitosamente."));
                 modalImages = new (string, string, byte[])?[3];
                 modalExistingImageIds = new int?[3];
                 modalImageRemoved = new bool[3];
@@ -1298,6 +1257,7 @@
             Price = p.Price,
             Codebar = p.Codebar,
             Unidad = p.Unidad,
+            Peso = p.Peso,
             Costo = p.Costo,
             Stock = p.Stock,
             Stock_Mix = p.Stock_Mix,
@@ -1361,6 +1321,7 @@
         to.Price = from.Price;
         to.Codebar = from.Codebar;
         to.Unidad = from.Unidad;
+        to.Peso = from.Peso;
         to.Costo = from.Costo;
         to.Stock = from.Stock;
         to.Stock_Mix = from.Stock_Mix;
@@ -1567,6 +1528,52 @@
         else
         {
             ToastSvc.Notify(new(ToastType.Danger, "No se pudo eliminar el producto."));
+        }
+    }
+
+    private async Task DownloadTemplateExcel()
+    {
+        try
+        {
+            using var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("PlantillaProductos");
+
+            var headers = new[]
+            {
+                "Código (Product_Code) *",
+                "Nombre del producto *",
+                "Categoría *",
+                "Unidad *",
+                "Precio de venta *"
+            };
+            for (var c = 0; c < headers.Length; c++)
+            {
+                var cell = worksheet.Cell(1, c + 1);
+                cell.Value = headers[c];
+                cell.Style.Font.Bold = true;
+                cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#F2F2F2");
+            }
+            worksheet.Range(1, 1, 1, headers.Length).SetAutoFilter();
+
+            worksheet.Cell(2, 1).Value = "PROD-001";
+            worksheet.Cell(2, 2).Value = "Producto ejemplo";
+            worksheet.Cell(2, 3).Value = "Categoría";
+            worksheet.Cell(2, 4).Value = "UND";
+            worksheet.Cell(2, 5).Value = 100.00;
+
+            worksheet.Columns().AdjustToContents();
+            worksheet.SheetView.FreezeRows(1);
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            var content = stream.ToArray();
+
+            await JS.InvokeVoidAsync("downloadFile", "Plantilla_Carga_Productos.xlsx", Convert.ToBase64String(content));
+            ToastSvc.Notify(new(ToastType.Success, "Plantilla Excel descargada."));
+        }
+        catch (Exception ex)
+        {
+            ToastSvc.Notify(new(ToastType.Danger, $"Error al generar plantilla: {ex.Message}"));
         }
     }
 

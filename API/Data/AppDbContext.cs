@@ -28,6 +28,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             .Property(p => p.Costo)
             .HasPrecision(18, 2);
 
+        modelBuilder.Entity<Product>()
+            .Property(p => p.Peso)
+            .HasMaxLength(100);
+
         modelBuilder.Entity<User>()
             .Property(u => u.Nickname)
             .HasMaxLength(50);

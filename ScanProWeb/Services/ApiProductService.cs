@@ -161,6 +161,7 @@ public class ApiProductService(IHttpClientFactory factory, IJSRuntime js)
                 Price = product.Price,
                 Codebar = product.Codebar,
                 Unidad = product.Unidad,
+                Peso = product.Peso,
                 Costo = product.Costo,
                 Stock = product.Stock,
                 Stock_Mix = product.Stock_Mix,
@@ -271,6 +272,7 @@ public class ApiProductService(IHttpClientFactory factory, IJSRuntime js)
         Price = product.Price,
         Codebar = product.Codebar?.Trim() ?? string.Empty,
         Unidad = product.Unidad?.Trim() ?? string.Empty,
+        Peso = string.IsNullOrWhiteSpace(product.Peso) ? null : product.Peso.Trim(),
         Costo = product.Costo,
         Stock = product.Stock,
         Stock_Mix = product.Stock_Mix,
@@ -300,6 +302,7 @@ public class ApiProductService(IHttpClientFactory factory, IJSRuntime js)
         Price = product.Price,
         Codebar = product.Codebar?.Trim() ?? string.Empty,
         Unidad = product.Unidad?.Trim() ?? string.Empty,
+        Peso = string.IsNullOrWhiteSpace(product.Peso) ? null : product.Peso.Trim(),
         Costo = product.Costo,
         Stock = product.Stock,
         Stock_Mix = product.Stock_Mix,
@@ -334,6 +337,7 @@ public class ApiProductService(IHttpClientFactory factory, IJSRuntime js)
         public double Price { get; set; }
         public string Codebar { get; set; } = "";
         public string Unidad { get; set; } = "";
+        public string? Peso { get; set; }
         public decimal Costo { get; set; }
         public double Stock { get; set; }
         public double Stock_Mix { get; set; }
@@ -400,6 +404,7 @@ public class ApiProductService(IHttpClientFactory factory, IJSRuntime js)
         public double Price { get; set; }
         public string Codebar { get; set; } = "";
         public string Unidad { get; set; } = "";
+        public string? Peso { get; set; }
         public decimal Costo { get; set; }
         public double Stock { get; set; }
         public double Stock_Mix { get; set; }

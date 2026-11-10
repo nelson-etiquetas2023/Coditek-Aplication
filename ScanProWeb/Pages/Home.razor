@@ -1,9 +1,62 @@
 ﻿@page "/home"
+@inject ApiProductService Api
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Panel de control</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="mb-4">
+    <h2 class="mb-0 fw-bold">Panel de control</h2>
+</div>
 
-Welcome to your new app.
+<div class="row g-3 pb-5">
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-start justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase mb-1">Productos registrados</div>
+                        @if (isLoading)
+                        {
+                            <div class="text-muted">Cargando...</div>
+                        }
+                        else if (!string.IsNullOrEmpty(loadError))
+                        {
+                            <div class="text-danger small">@loadError</div>
+                        }
+                        else
+                        {
+                            <div class="display-6 fw-bold mb-0">@productCount</div>
+                        }
+                        <div class="small text-muted mt-1">Total en la aplicación</div>
+                    </div>
+                    <div class="rounded-3 d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#f1f3f5;color:#212529;">
+                        <Icon Name="IconName.BoxSeam" Size="IconSize.x4" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
+@code {
+    private int productCount;
+    private bool isLoading = true;
+    private string? loadError;
 
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var products = await Api.GetProductsAsync();
+            productCount = products?.Count ?? 0;
+        }
+        catch (Exception ex)
+        {
+            loadError = "No se pudo cargar el resumen.";
+            Console.WriteLine($"Dashboard load error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

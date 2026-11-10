@@ -23,6 +23,8 @@ public class Product
     [Required]
     public string Unidad { get; set; } = null!;
 
+    [StringLength(100)]
+    public string? Peso { get; set; }
     public decimal Costo { get; set; } = 0;
     public double Stock { get; set; } = 0;
     public double Stock_Mix { get; set; }

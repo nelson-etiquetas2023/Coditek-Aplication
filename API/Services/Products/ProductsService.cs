@@ -77,6 +77,7 @@ public class ProductsService(AppDbContext db, IWebHostEnvironment env, IConfigur
         Diff("Price", existing.Price, product.Price);
         Diff("Codebar", existing.Codebar, product.Codebar);
         Diff("Unidad", existing.Unidad, product.Unidad);
+        Diff("Peso", existing.Peso, product.Peso);
         Diff("Costo", existing.Costo, product.Costo);
         Diff("Stock", existing.Stock, product.Stock);
         Diff("Stock_Mix", existing.Stock_Mix, product.Stock_Mix);
@@ -99,6 +100,7 @@ public class ProductsService(AppDbContext db, IWebHostEnvironment env, IConfigur
         existing.Price = product.Price;
         existing.Codebar = product.Codebar;
         existing.Unidad = product.Unidad;
+        existing.Peso = product.Peso;
         existing.Costo = product.Costo;
         existing.Stock = product.Stock;
         existing.Stock_Mix = product.Stock_Mix;
