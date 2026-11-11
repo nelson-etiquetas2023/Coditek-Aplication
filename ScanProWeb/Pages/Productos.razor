@@ -1,4 +1,4 @@
-@page "/productos"
+﻿@page "/productos"
 @inject ApiProductService Api
 @inject ApiConfigService ConfigApi
 @inject IJSRuntime JS
@@ -26,12 +26,7 @@
         <button class="btn border border-dark text-dark" style="background-color:#fff;" type="button" @onclick="DeleteSelectedProduct" disabled="@(selectedProduct is null)">
             <Icon Name="IconName.Trash" /> Eliminar
         </button>
-        <button class="btn border border-dark text-dark" style="background-color:#fff;" type="button" @onclick="DownloadTemplateExcel" title="Descargar plantilla Excel para carga masiva">
-            <Icon Name="IconName.FileEarmarkSpreadsheet" /> Plantilla
-        </button>
-        <button class="btn border border-dark text-dark" style="background-color:#fff;" type="button" @onclick="ExportToExcel">
-            <Icon Name="IconName.FileEarmarkExcel" /> Exportar
-        </button>
+
         <button class="btn border border-dark text-dark" style="background-color:#fff;" type="button" @onclick="OpenProductReport">
             <Icon Name="IconName.BarChartFill" /> Reporte
         </button>
@@ -42,12 +37,11 @@
     <div style="flex: 0 0 calc(30% - 8px); min-width: 0;">
         <div class="card h-100">
             <div class="card-header">
-                <strong><Icon Name="IconName.Search" /> Búsqueda</strong>
+                <strong><Icon Name="IconName.Search" /> Buscador</strong>
             </div>
             <div class="card-body">
                 <div class="mb-3">
-                    <label class="form-label small fw-semibold" for="buscadorProductos">Buscador</label>
-                    <input id="buscadorProductos" class="form-control" type="text" value="@searchText" @oninput="OnSearchTextChanged" placeholder="Buscar por ID, código o nombre" />
+                    <input id="buscadorProductos" class="form-control" type="text" value="@searchText" @oninput="OnSearchTextChanged" placeholder="Buscar por ID, código o nombre" aria-label="Buscador" />
                 </div>
                 <div class="mb-3 d-flex align-items-center gap-3 flex-wrap">
                     <label class="form-check mb-0">
@@ -151,8 +145,11 @@
                     <li class="nav-item" role="presentation">
                         <button class="nav-link @ActiveClass("etiqueta")" type="button" role="tab" aria-selected='@AriaSelected("etiqueta")' @onclick='() => activeDetailTab = "etiqueta"'><Icon Name="IconName.UpcScan" /> Etiqueta</button>
                     </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link @ActiveClass("importar")" type="button" role="tab" aria-selected='@AriaSelected("importar")' @onclick='() => activeDetailTab = "importar"'><Icon Name="IconName.FileEarmarkArrowUp" /> Importar</button>
+                    </li>
                 </ul>
-                @if (selectedProduct is not null)
+                @if (selectedProduct is not null && activeDetailTab != "importar")
                 {
                     <div class="d-flex align-items-center gap-2 flex-wrap">
                         @if (!isDetailEditing)
@@ -172,7 +169,128 @@
                 }
             </div>
             <div class="card-body">
-                @if (selectedProduct is null)
+                @if (activeDetailTab == "importar")
+                {
+                    <div class="import-franja d-flex flex-wrap justify-content-between align-items-center gap-2 p-3 mb-3 rounded" style="background-color: var(--color-secondary, #B4D6EA); border: 1px solid var(--color-border, #b7d3e8);">
+                        <div class="d-flex align-items-center gap-2">
+                            <Icon Name="IconName.FileEarmarkArrowUp" Size="IconSize.x2" />
+                            <div>
+                                <h5 class="mb-0 fw-bold">Importación de datos desde Excel</h5>
+                                <small class="text-muted">Carga masiva de productos</small>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button class="btn btn-outline-dark bg-white" type="button" @onclick="DownloadTemplateExcel" disabled="@(isImportLoading || isImportSaving)">
+                                <Icon Name="IconName.FileEarmarkSpreadsheet" /> Descargar plantilla
+                            </button>
+                            <button class="btn btn-primary" type="button" @onclick="OpenImportUploadModal" disabled="@(isImportLoading || isImportSaving)">
+                                <Icon Name="IconName.Upload" /> Cargar datos
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                        <div class="flex-grow-1" style="max-width: 420px;">
+                            <div class="input-group">
+                                <span class="input-group-text"><Icon Name="IconName.Search" /></span>
+                                <input class="form-control" type="text" placeholder="Buscar en los datos cargados..." @bind="importSearchText" @bind:event="oninput" disabled="@(importRows.Count == 0)" />
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            @if (importRows.Count > 0)
+                            {
+                                <span class="badge bg-secondary">@FilteredImportRows.Count() / @importRows.Count filas</span>
+                                <span class="badge bg-success">@importRows.Count(r => r.IsValid && !r.HasWarning) listas</span>
+                                @if (importRows.Any(r => r.HasWarning && r.IsValid))
+                                {
+                                    <span class="badge bg-warning text-dark">@importRows.Count(r => r.HasWarning && r.IsValid) con advertencia</span>
+                                }
+                                @if (importRows.Any(r => !r.IsValid))
+                                {
+                                    <span class="badge bg-danger">@importRows.Count(r => !r.IsValid) con errores</span>
+                                }
+                            }
+                            <button class="btn btn-success" type="button" @onclick="SaveImportToDatabase" disabled="@(!CanSaveImport)">
+                                @if (isImportSaving)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                    <span>Guardando @importSaveProgress/@importSaveTotal...</span>
+                                }
+                                else
+                                {
+                                    <Icon Name="IconName.FloppyFill" /> <span>Guardar en base de datos</span>
+                                }
+                            </button>
+                        </div>
+                    </div>
+
+                    @if (isImportLoading)
+                    {
+                        <div class="d-flex flex-column align-items-center justify-content-center py-5 text-primary">
+                            <div class="spinner-border mb-3" role="status" style="width:3rem;height:3rem;"><span class="visually-hidden">Cargando...</span></div>
+                            <div class="fw-semibold">Cargando datos del archivo...</div>
+                            <div class="text-muted small">Por favor espera mientras se procesa la hoja de Excel.</div>
+                        </div>
+                    }
+                    else if (importRows.Count == 0)
+                    {
+                        <div class="text-center text-muted py-5 border rounded bg-light">
+                            <Icon Name="IconName.FileEarmarkSpreadsheet" Size="IconSize.x3" />
+                            <div class="mt-2 fw-semibold">No hay datos cargados</div>
+                            <div class="small">Descarga la plantilla, complétala y usa <strong>Cargar datos</strong> para montar la hoja de Excel.</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive border rounded import-grid-wrap" style="max-height: 52vh; overflow:auto;">
+                            <QuickGrid Items="FilteredImportRows.AsQueryable()" Class="table table-sm table-striped table-hover mb-0 align-middle" RowClass="GetImportRowClass">
+                                <PropertyColumn Property="@(r => r.RowNumber)" Title="#" Sortable="true" />
+                                <PropertyColumn Property="@(r => r.Product_Code)" Title="Código" Sortable="true" />
+                                <PropertyColumn Property="@(r => r.Product_Name)" Title="Nombre" Sortable="true" />
+                                <PropertyColumn Property="@(r => r.Product_Type)" Title="Categoría" Sortable="true" />
+                                <PropertyColumn Property="@(r => r.Unidad)" Title="Unidad" Sortable="true" />
+                                <TemplateColumn Title="Precio" Sortable="true">@context.Price.ToString("N2")</TemplateColumn>
+                                <TemplateColumn Title="Estado">
+                                    @if (!context.IsValid)
+                                    {
+                                        <span class="badge bg-danger" title="@context.Error">Error</span>
+                                    }
+                                    else if (context.HasWarning)
+                                    {
+                                        <span class="badge bg-warning text-dark" title="@context.Warning">Advertencia</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">Listo</span>
+                                    }
+                                </TemplateColumn>
+                                <TemplateColumn Title="Detalle">
+                                    @if (!context.IsValid)
+                                    {
+                                        <small class="text-danger fw-semibold">@context.Error</small>
+                                    }
+                                    else
+                                    {
+                                        @if (context.HasWarning)
+                                        {
+                                            <div><small class="text-warning-emphasis fw-semibold">@context.Warning</small></div>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(context.ResultMessage))
+                                        {
+                                            <div><small class="@context.ResultCss">@context.ResultMessage</small></div>
+                                        }
+                                    }
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(importLastSummary))
+                    {
+                        <div class="alert @importLastSummaryCss mt-3 mb-0">@importLastSummary</div>
+                    }
+                }
+                else if (selectedProduct is null)
                 {
                     <div class="text-muted">Seleccione un producto para ver su detalle.</div>
                 }
@@ -191,22 +309,26 @@
                                 {
                                     var index = i;
                                     <div class="col-md-4">
-                                        <div class="detail-photo-box" @onclick="() => OnDetailPhotoClicked(index)" title="@(isDetailEditing ? "Clic para cambiar la foto" : "Clic para ampliar")">
+                                        <div class="detail-photo-box @(isDetailEditing ? "edit-mode" : "")" @onclick="() => OnDetailPhotoClicked(index)" title="@(isDetailEditing ? "Clic para cambiar o agregar foto" : "Clic para ampliar")">
                                             @if (!string.IsNullOrWhiteSpace(detailImagePreviews[index]))
                                             {
                                                 <img src="@detailImagePreviews[index]" alt="Foto @(index + 1)" class="detail-photo-img" />
                                                 @if (isDetailEditing)
                                                 {
+                                                    <button type="button" class="btn-photo-action" @onclick:stopPropagation="true" @onclick="() => PickDetailPhoto(index)" title="Cambiar foto"><Icon Name="IconName.HandIndexThumb" /></button>
+                                                    <button type="button" class="btn-remove-image" @onclick:stopPropagation="true" @onclick="() => RemoveDetailImage(index)" title="Quitar foto"><Icon Name="IconName.XLg" /></button>
+                                                }
+                                                else
+                                                {
                                                     <button type="button" class="btn-photo-zoom" @onclick:stopPropagation="true" @onclick="() => OpenPhotoViewerFor(detailImagePreviews, index)" title="Ampliar"><Icon Name="IconName.ZoomIn" /></button>
-                                                    <button type="button" class="btn-remove-image" @onclick:stopPropagation="true" @onclick="() => RemoveDetailImage(index)" title="Quitar foto">✕</button>
                                                 }
                                             }
                                             else
                                             {
                                                 <div class="detail-photo-placeholder">
-                                                    <div class="fs-4">📷</div>
+                                                    <div class="photo-placeholder-icon"><Icon Name="IconName.CameraFill" /></div>
                                                     <div class="small fw-semibold">Foto @(index + 1)</div>
-                                                    <div class="small text-muted">@(isDetailEditing ? "Clic para elegir" : "Sin imagen")</div>
+                                                    <div class="small text-muted">@(isDetailEditing ? "Clic para agregar foto" : "Sin imagen")</div>
                                                 </div>
                                             }
                                         </div>
@@ -291,6 +413,32 @@
                                 </div>
                             </div>
                         </div>
+
+                        <hr class="my-3" />
+                        <div class="small fw-semibold text-muted mb-2">Auditoría</div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered mb-0 small align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Evento</th>
+                                        <th>Fecha y hora</th>
+                                        <th>Usuario</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Creación</td>
+                                        <td>@FmtAuditDate(GetFechaCreacion(selectedProduct))</td>
+                                        <td>@(string.IsNullOrWhiteSpace(GetUsuarioCreacion(selectedProduct)) ? "-" : GetUsuarioCreacion(selectedProduct))</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Última edición</td>
+                                        <td>@FmtAuditDate(GetFechaModificacion(selectedProduct))</td>
+                                        <td>@(string.IsNullOrWhiteSpace(GetUsuarioModificacion(selectedProduct)) ? "-" : GetUsuarioModificacion(selectedProduct))</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     }
                     else if (activeDetailTab == "otros")
                     {
@@ -364,36 +512,10 @@
                                     <div class="border rounded p-2 bg-light font-monospace small text-break">^XA^PW406^LL406^FO10,10^A0N,28,28^FD@(selectedProduct.Product_Name)^FS^FO10,40^BCN,50,N,N,N^FD@(string.IsNullOrWhiteSpace(selectedProduct.Codebar) ? selectedProduct.Product_Code : selectedProduct.Codebar)^FS^XZ</div>
                                 </div>
                                 <button class="btn btn-primary" type="button" @onclick="() => OpenLabelPrint(selectedProduct)"><Icon Name="IconName.Printer" /> Imprimir etiqueta</button>
-                                <div class="form-text mt-2">Los datos vienen de Detalle. Edita Código de barras y Precio en <strong>Detalle</strong> con <strong>Editar → Guardar</strong>. Más formatos e impresoras en el módulo <strong>Etiquetas</strong>.</div>
+                                <div class="form-text mt-2">Los datos vienen de Detalle. Edita Código de barras y Precio en <strong>Detalle</strong> con <strong>Editar â†’ Guardar</strong>. Más formatos e impresoras en el módulo <strong>Etiquetas</strong>.</div>
                             </div>
                         </div>
                     }
-
-                    <hr class="my-3" />
-                    <div class="small fw-semibold text-muted mb-2">Auditoría</div>
-                    <div class="table-responsive">
-                        <table class="table table-sm table-bordered mb-0 small align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Evento</th>
-                                    <th>Fecha y hora</th>
-                                    <th>Usuario</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Creación</td>
-                                    <td>@FmtAuditDate(GetFechaCreacion(selectedProduct))</td>
-                                    <td>@(string.IsNullOrWhiteSpace(GetUsuarioCreacion(selectedProduct)) ? "-" : GetUsuarioCreacion(selectedProduct))</td>
-                                </tr>
-                                <tr>
-                                    <td>Última edición</td>
-                                    <td>@FmtAuditDate(GetFechaModificacion(selectedProduct))</td>
-                                    <td>@(string.IsNullOrWhiteSpace(GetUsuarioModificacion(selectedProduct)) ? "-" : GetUsuarioModificacion(selectedProduct))</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
                 }
             </div>
         </div>
@@ -476,25 +598,25 @@
         </div>
 
         <div class="mt-4">
-            <label class="form-label"><strong>📸 Fotos del producto (máx 3)</strong></label>
+            <label class="form-label"><strong>Fotos del producto (máx. 3)</strong></label>
             <small class="text-muted d-block">Imágenes seleccionadas: <strong>@modalImages.Count(f => f is not null)/3</strong></small>
-            <p class="text-muted small">Haz clic en un cuadro vacío para elegir la foto; clic en una foto ocupada la elimina.</p>
+            <p class="text-muted small">Haz clic en un cuadro vacío para elegir o cambiar la foto. Usa el botón X para eliminarla.</p>
 
             <div class="row g-2 mt-2 mb-3">
                 @for (int i = 0; i < 3; i++)
                 {
                     int currentIndex = i;
                     <div class="col-md-4">
-                        <div class="image-preview-box clickable-box" @onclick="() => ClickImageBox(currentIndex)">
+                        <div class="image-preview-box clickable-box @(string.IsNullOrEmpty(imagePreviews[i]) ? "is-empty" : "")" @onclick="() => ClickImageBox(currentIndex)">
                             @if (!string.IsNullOrEmpty(imagePreviews[i]))
                             {
                                 <div class="image-preview-area">
                                     <img src="@imagePreviews[i]" alt="Preview @(i+1)" class="img-preview" />
-                                    <button type="button" class="btn-photo-zoom" @onclick:stopPropagation="true" @onclick="() => OpenPhotoViewerFor(imagePreviews, i)" title="Ampliar"><Icon Name="IconName.ZoomIn" /></button>
-                                    <button type="button" class="btn-remove-image" @onclick:stopPropagation="true" @onclick="() => RemoveImage(i)" title="Eliminar imagen">✕</button>
+                                    <button type="button" class="btn-photo-action" @onclick:stopPropagation="true" @onclick="() => PickModalPhoto(currentIndex)" title="Cambiar foto"><Icon Name="IconName.HandIndexThumb" /></button>
+                                    <button type="button" class="btn-remove-image" @onclick:stopPropagation="true" @onclick="() => RemoveImage(i)" title="Eliminar imagen"><Icon Name="IconName.XLg" /></button>
                                 </div>
                                 <div class="image-info">
-                                    <small class="text-success">✓ Imagen @(i + 1)</small>
+                                    <small class="text-success fw-semibold"><Icon Name="IconName.CheckCircleFill" /> Imagen @(i + 1)</small>
                                     @if (!string.IsNullOrEmpty(imageNames[i]))
                                     {
                                         <div class="text-truncate" title="@imageNames[i]"><small>@imageNames[i]</small></div>
@@ -504,8 +626,8 @@
                             else
                             {
                                 <div class="image-placeholder">
-                                    <div class="placeholder-icon">📷</div>
-                                    <div class="placeholder-text">Imagen @(i + 1)</div>
+                                    <div class="photo-placeholder-icon"><Icon Name="IconName.CameraFill" /></div>
+                                    <div class="placeholder-text fw-semibold">Imagen @(i + 1)</div>
                                     <div class="placeholder-hint">Haz clic para seleccionar</div>
                                 </div>
                             }
@@ -516,21 +638,22 @@
 
             <InputFile id="modalPhotoInput" @ref="fileInput" OnChange="OnFileSelected" accept="image/*" hidden />
         </div>
+
     </BodyTemplate>
 </Modal>
 
-<Modal @ref="photoModal" Title="Foto ampliada" Size="ModalSize.ExtraLarge">
+<Modal @ref="photoModal" Title="Foto ampliada" Size="ModalSize.ExtraLarge" IsVerticallyCentered="true">
     <BodyTemplate>
         @if (!string.IsNullOrWhiteSpace(maximizedImage))
         {
             var photoIndices = GetPhotoIndices();
-            <div style="min-height: calc(65vh + 2rem);">
+            <div style="min-height: calc(80vh + 2rem);">
                 <div class="d-flex align-items-center justify-content-center gap-2">
                     @if (photoIndices.Count > 1)
                     {
                         <button class="btn btn-outline-secondary flex-shrink-0" type="button" @onclick="PrevPhoto" title="Foto anterior"><Icon Name="IconName.ChevronLeft" /></button>
                     }
-                    <img src="@maximizedImage" alt="Foto ampliada" style="width:min(100%, 820px); height:65vh; object-fit:contain; background:#f8f9fa; border:1px solid #dee2e6; border-radius:8px; padding:8px;" />
+                    <img src="@maximizedImage" alt="Foto ampliada" style="width:100%; max-width:1200px; height:80vh; object-fit:contain; background:#f8f9fa; border:1px solid #dee2e6; border-radius:8px; padding:4px;" />
                     @if (photoIndices.Count > 1)
                     {
                         <button class="btn btn-outline-secondary flex-shrink-0" type="button" @onclick="NextPhoto" title="Foto siguiente"><Icon Name="IconName.ChevronRight" /></button>
@@ -609,6 +732,27 @@
         <button class="btn btn-secondary" @onclick="CloseProductReport"><Icon Name="IconName.XCircle" /> Cerrar</button>
         <button class="btn btn-outline-info" @onclick="ExportToExcel"><Icon Name="IconName.FileEarmarkExcel" /> Exportar Excel</button>
         <button class="btn btn-primary" @onclick="PrintProductReport"><Icon Name="IconName.Printer" /> Imprimir</button>
+    </FooterTemplate>
+</Modal>
+
+<Modal @ref="importUploadModal" Title="Cargar hoja de Excel">
+    <BodyTemplate>
+        <p class="mb-2">Selecciona un archivo <strong>.xlsx</strong> o <strong>.xls</strong> con el formato de la plantilla.</p>
+        <InputFile OnChange="OnImportFileSelected" accept=".xlsx,.xls" class="form-control" />
+        @if (!string.IsNullOrWhiteSpace(importSelectedFileName))
+        {
+            <div class="mt-2 small text-muted"><Icon Name="IconName.FileEarmarkCheck" /> Archivo seleccionado: <strong>@importSelectedFileName</strong></div>
+        }
+        <div class="alert alert-info mt-3 mb-0 small">
+            <strong>Columnas esperadas:</strong> Código (Product_Code), Nombre del producto, Categoría, Unidad, Precio de venta. La primera fila debe ser el encabezado.
+        </div>
+    </BodyTemplate>
+    <FooterTemplate>
+        <button class="btn btn-secondary" type="button" @onclick="CloseImportUploadModal" disabled="@isImportLoading"><Icon Name="IconName.XCircle" /> Cancelar</button>
+        <button class="btn btn-primary" type="button" @onclick="LoadSelectedImportFile" disabled="@(importSelectedFile is null || isImportLoading)">
+            @if (isImportLoading) { <span class="spinner-border spinner-border-sm me-1"></span> }
+            <Icon Name="IconName.Upload" /> Cargar datos
+        </button>
     </FooterTemplate>
 </Modal>
 
@@ -699,10 +843,13 @@
 
         if (productsFiltered.Any())
         {
-            selectedProduct = productsFiltered.First();
-            isDetailEditing = false;
-            detailBackup = null;
-            await LoadDetailImagesAsync();
+            if (selectedProduct is null || !productsFiltered.Any(p => p.Product_id == selectedProduct.Product_id))
+            {
+                selectedProduct = productsFiltered.First();
+                isDetailEditing = false;
+                detailBackup = null;
+                await LoadDetailImagesAsync();
+            }
         }
         else
         {
@@ -844,20 +991,12 @@
 
     private async Task ClickImageBox(int index)
     {
-        if (!string.IsNullOrEmpty(imagePreviews[index]))
+        nextImageSlot = index;
+        try
         {
-            RemoveImage(index);
+            await JS.InvokeVoidAsync("eval", "document.getElementById('modalPhotoInput')?.click()");
         }
-        else
-        {
-            nextImageSlot = index;
-            try
-            {
-                if (fileInput != null)
-                    await JS.InvokeVoidAsync("eval", "document.getElementById('modalPhotoInput')?.click()");
-            }
-            catch (Exception ex) { Console.WriteLine($"Error: {ex.Message}"); }
-        }
+        catch (Exception ex) { Console.WriteLine($"Error: {ex.Message}"); }
     }
 
     private async Task OnFileSelected(InputFileChangeEventArgs e)
@@ -1192,6 +1331,21 @@
         ShowPhotoByIndex(indices[(pos - 1 + indices.Count) % indices.Count]);
     }
 
+
+    private async Task PickDetailPhoto(int index)
+    {
+        if (!isDetailEditing) return;
+        detailNextImageSlot = index;
+        try { await JS.InvokeVoidAsync("eval", "document.querySelector('input[type=\"file\"][data-detail-photo]')?.click()"); }
+        catch { try { await JS.InvokeVoidAsync("eval", "document.querySelector('input[type=file]').click()"); } catch { } }
+    }
+
+    private async Task PickModalPhoto(int index)
+    {
+        nextImageSlot = index;
+        try { await JS.InvokeVoidAsync("eval", "document.getElementById('modalPhotoInput')?.click()"); }
+        catch { }
+    }
     private async Task OnDetailPhotoClicked(int index)
     {
         if (isDetailEditing)
@@ -1673,5 +1827,464 @@
             s = s.Replace(',', '.');
         }
         return double.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out result);
+    }
+
+    // --- Importaciï¿½n Excel (tab Importar) ---
+    private Modal? importUploadModal;
+    private IBrowserFile? importSelectedFile;
+    private string? importSelectedFileName;
+    private readonly List<ImportRow> importRows = new();
+    private string importSearchText = string.Empty;
+    private bool isImportLoading;
+    private bool isImportSaving;
+    private int importSaveProgress;
+    private int importSaveTotal;
+    private string? importLastSummary;
+    private string importLastSummaryCss = "alert-info";
+
+    private bool CanSaveImport => !isImportLoading && !isImportSaving && importRows.Any(r => r.IsValid);
+
+    private IEnumerable<ImportRow> FilteredImportRows
+    {
+        get
+        {
+            IEnumerable<ImportRow> q = importRows;
+            if (!string.IsNullOrWhiteSpace(importSearchText))
+            {
+                var s = importSearchText.Trim();
+                q = q.Where(r =>
+                    (r.Product_Code?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (r.Product_Name?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (r.Product_Type?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (r.Unidad?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false));
+            }
+            return q;
+        }
+    }
+
+    private string GetImportRowClass(ImportRow row)
+    {
+        if (!row.IsValid) return "table-danger";
+        if (row.HasWarning) return "table-warning";
+        return string.Empty;
+    }
+
+    // Asegurar que la validación compare usando los datos actuales en memoria
+    private void EnsureImportValidation() => ValidateImportRows();
+
+    private async Task OpenImportUploadModal()
+    {
+        importSelectedFile = null;
+        importSelectedFileName = null;
+        if (importUploadModal is not null) await importUploadModal.ShowAsync();
+    }
+
+    private async Task CloseImportUploadModal()
+    {
+        if (importUploadModal is not null) await importUploadModal.HideAsync();
+    }
+
+    private void OnImportFileSelected(InputFileChangeEventArgs e)
+    {
+        importSelectedFile = e.FileCount > 0 ? e.File : null;
+        importSelectedFileName = importSelectedFile?.Name;
+    }
+
+    private async Task LoadSelectedImportFile()
+    {
+        if (importSelectedFile is null) return;
+        isImportLoading = true;
+        importLastSummary = null;
+        StateHasChanged();
+        try
+        {
+            const long maxSize = 20 * 1024 * 1024;
+            byte[] buffer;
+            using (var source = importSelectedFile.OpenReadStream(maxAllowedSize: maxSize))
+            using (var ms = new MemoryStream())
+            {
+                await source.CopyToAsync(ms);
+                buffer = ms.ToArray();
+            }
+
+            // Refrescar productos para validar contra el estado actual del sistema al cargar la hoja
+            List<ApiProductService.Product> latestProducts = new();
+            try { latestProducts = await Api.GetProductsAsync() ?? new(); } catch { latestProducts = new(); }
+            if (latestProducts.Count > 0 || products is null)
+            {
+                products = latestProducts;
+            }
+
+            if (importUploadModal is not null) await importUploadModal.HideAsync();
+            await Task.Yield();
+
+            using var readMs = new MemoryStream(buffer);
+            ParseImportWorkbook(readMs);
+            var invalid = importRows.Count(r => !r.IsValid);
+            var warnings = importRows.Count(r => r.IsValid && r.HasWarning);
+            var existentes = products?.Count ?? 0;
+            var msg = $"Archivo cargado: {importRows.Count} fila(s). Validadas contra {existentes} producto(s) del sistema: {invalid} con error, {warnings} con advertencia.";
+            ToastSvc.Notify(new(invalid == 0 ? (warnings == 0 ? ToastType.Success : ToastType.Warning) : ToastType.Warning, msg));
+            if (existentes == 0)
+            {
+                importLastSummaryCss = "alert-warning";
+                importLastSummary = "No se pudieron cargar productos del sistema para validar duplicados (código/nombre). Verifica que la API esté disponible y la sesión sea válida.";
+            }
+        }
+        catch (Exception ex)
+        {
+            importRows.Clear();
+            ToastSvc.Notify(new(ToastType.Danger, $"Error al leer el archivo: {ex.Message}"));
+        }
+        finally
+        {
+            isImportLoading = false;
+            importSelectedFile = null;
+            importSelectedFileName = null;
+            StateHasChanged();
+        }
+    }
+
+
+    private void ParseImportWorkbook(Stream stream)
+    {
+        importRows.Clear();
+        using var workbook = new XLWorkbook(stream);
+        var ws = workbook.Worksheets.FirstOrDefault();
+        if (ws is null) throw new InvalidOperationException("El archivo no contiene hojas.");
+
+        var headerMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var lastCol = ws.Row(1).LastCellUsed()?.Address.ColumnNumber ?? 0;
+        for (var c = 1; c <= lastCol; c++)
+        {
+            var h = ws.Cell(1, c).GetString().Trim();
+            if (!string.IsNullOrWhiteSpace(h)) headerMap[h] = c;
+        }
+        int Col(params string[] keys)
+        {
+            foreach (var kv in headerMap)
+                foreach (var k in keys)
+                    if (kv.Key.Contains(k, StringComparison.OrdinalIgnoreCase)) return kv.Value;
+            return -1;
+        }
+        var cCode = Col("product_code", "cï¿½digo", "codigo");
+        var cName = Col("nombre");
+        var cCat = Col("categor", "product_type", "tipo");
+        var cUnit = Col("unidad");
+        var cPrice = Col("precio");
+        var cBar = Col("barra", "codebar", "barcode");
+        var cMarca = Col("marca");
+        var cPeso = Col("peso");
+        var cCosto = Col("costo");
+        var cStock = Col("stock", "existencia");
+        if (cCode < 0 && cName < 0 && cCat < 0 && lastCol >= 5) { cCode = 1; cName = 2; cCat = 3; cUnit = 4; cPrice = 5; }
+
+        var lastRow = ws.LastRowUsed()?.RowNumber() ?? 1;
+        for (var r = 2; r <= lastRow; r++)
+        {
+            var row = ws.Row(r);
+            if (row.IsEmpty()) continue;
+            var item = new ImportRow
+            {
+                RowNumber = importRows.Count + 1,
+                Product_Code = GetCellStr(ws, r, cCode),
+                Product_Name = GetCellStr(ws, r, cName),
+                Product_Type = GetCellStr(ws, r, cCat),
+                Unidad = GetCellStr(ws, r, cUnit),
+                Price = GetCellDouble(ws, r, cPrice),
+                Codebar = GetCellStr(ws, r, cBar),
+                Marca = GetCellStr(ws, r, cMarca),
+                Peso = GetCellStr(ws, r, cPeso),
+                Costo = GetCellDecimal(ws, r, cCosto),
+                Stock = GetCellDouble(ws, r, cStock)
+            };
+            importRows.Add(item);
+        }
+
+        ValidateImportRows();
+    }
+
+    private void ValidateImportRows()
+    {
+        var existing = products ?? new List<ApiProductService.Product>();
+        var existingCodes = existing
+            .Where(p => !string.IsNullOrWhiteSpace(p.Product_Code))
+            .GroupBy(p => NormalizeCode(p.Product_Code), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        var existingNames = existing
+            .Where(p => !string.IsNullOrWhiteSpace(p.Product_Name))
+            .GroupBy(p => NormalizeName(p.Product_Name), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        var existingCompactNames = existing
+            .Where(p => !string.IsNullOrWhiteSpace(p.Product_Name))
+            .GroupBy(p => CompactName(p.Product_Name), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+        var seenCodes = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var seenNames = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var seenCompactNames = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var row in importRows)
+        {
+            var errors = new List<string>();
+            var code = NormalizeSpaces(row.Product_Code);
+            var name = NormalizeSpaces(row.Product_Name);
+            row.Product_Code = code;
+            row.Product_Name = name;
+            row.Product_Type = NormalizeSpaces(row.Product_Type);
+            row.Unidad = NormalizeSpaces(row.Unidad);
+
+            var codeKey = NormalizeCode(code);
+            var nameKey = NormalizeName(name);
+            var compactNameKey = CompactName(name);
+
+            if (string.IsNullOrWhiteSpace(code)) errors.Add("Código requerido");
+            if (string.IsNullOrWhiteSpace(name)) errors.Add("Nombre requerido");
+            if (string.IsNullOrWhiteSpace(row.Product_Type)) errors.Add("Categoría requerida");
+            if (string.IsNullOrWhiteSpace(row.Unidad)) errors.Add("Unidad requerida");
+            if (row.Price <= 0) errors.Add("El precio debe ser mayor a 0");
+
+            if (!string.IsNullOrWhiteSpace(codeKey))
+            {
+                if (existingCodes.TryGetValue(codeKey, out var pCode))
+                    errors.Add($"El código \"{code}\" ya existe en el sistema (ID {pCode.Product_id}, \"{pCode.Product_Code}\")");
+                else if (seenCodes.TryGetValue(codeKey, out var otherRow))
+                    errors.Add($"Código duplicado en la hoja (fila {otherRow})");
+                else
+                    seenCodes[codeKey] = row.RowNumber;
+            }
+
+            ApiProductService.Product? nameMatch = null;
+            if (!string.IsNullOrWhiteSpace(nameKey) && existingNames.TryGetValue(nameKey, out var pByName))
+                nameMatch = pByName;
+            else if (!string.IsNullOrWhiteSpace(compactNameKey) && existingCompactNames.TryGetValue(compactNameKey, out var pByCompact))
+                nameMatch = pByCompact;
+
+            row.Warning = string.Empty;
+            if (!string.IsNullOrWhiteSpace(nameKey))
+            {
+                if (nameMatch is not null)
+                    errors.Add($"El producto \"{name}\" ya existe en el sistema (ID {nameMatch.Product_id}, \"{nameMatch.Product_Name}\")");
+                else if (seenNames.TryGetValue(nameKey, out var otherRow))
+                    errors.Add($"Nombre duplicado en la hoja (fila {otherRow})");
+                else if (!string.IsNullOrWhiteSpace(compactNameKey) && seenCompactNames.TryGetValue(compactNameKey, out var otherRowCompact))
+                    errors.Add($"Nombre duplicado en la hoja (fila {otherRowCompact})");
+                else
+                {
+                    seenNames[nameKey] = row.RowNumber;
+                    if (!string.IsNullOrWhiteSpace(compactNameKey)) seenCompactNames[compactNameKey] = row.RowNumber;
+
+                    var similar = FindSimilarProductName(name, existing);
+                    if (similar is not null)
+                        row.Warning = $"Nombre parecido a un producto existente: \"{similar.Product_Name}\" (ID {similar.Product_id}). Verifica si es el mismo producto.";
+                }
+            }
+
+            row.IsValid = errors.Count == 0;
+            row.Error = string.Join("; ", errors);
+        }
+    }
+
+    private static string NormalizeSpaces(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        var parts = value.Trim()
+            .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries); // all whitespace
+        return string.Join(" ", parts);
+    }
+
+    private static string NormalizeCode(string? value) => NormalizeSpaces(value).ToUpperInvariant();
+
+    private static string NormalizeName(string? value)
+    {
+        var s = NormalizeSpaces(value);
+        if (string.IsNullOrEmpty(s)) return string.Empty;
+        s = s.Normalize(System.Text.NormalizationForm.FormD);
+        var sb = new System.Text.StringBuilder(s.Length);
+        foreach (var ch in s)
+        {
+            var uc = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch);
+            if (uc != System.Globalization.UnicodeCategory.NonSpacingMark)
+                sb.Append(char.ToUpperInvariant(ch));
+        }
+        return sb.ToString().Normalize(System.Text.NormalizationForm.FormC);
+    }
+
+    private static string CompactName(string? value)
+    {
+        var n = NormalizeName(value);
+        if (string.IsNullOrEmpty(n)) return string.Empty;
+        var sb = new System.Text.StringBuilder(n.Length);
+        foreach (var ch in n)
+        {
+            if (!char.IsWhiteSpace(ch)) sb.Append(ch);
+        }
+        return sb.ToString();
+    }
+
+    private static ApiProductService.Product? FindSimilarProductName(string name, List<ApiProductService.Product> existing)
+    {
+        if (string.IsNullOrWhiteSpace(name) || existing.Count == 0) return null;
+        ApiProductService.Product? best = null;
+        double bestScore = 0;
+        foreach (var p in existing)
+        {
+            if (string.IsNullOrWhiteSpace(p.Product_Name)) continue;
+            var score = NameSimilarity(name, p.Product_Name);
+            if (score > bestScore)
+            {
+                bestScore = score;
+                best = p;
+            }
+        }
+        // Umbral: parecido pero no igual (los iguales ya se detectan como duplicado bloqueante)
+        return bestScore >= 0.72 ? best : null;
+    }
+
+    private static double NameSimilarity(string a, string b)
+    {
+        var na = NormalizeName(a);
+        var nb = NormalizeName(b);
+        if (string.IsNullOrEmpty(na) || string.IsNullOrEmpty(nb)) return 0;
+        if (string.Equals(na, nb, StringComparison.Ordinal)) return 1;
+
+        var ca = CompactName(a);
+        var cb = CompactName(b);
+        var compactScore = (string.IsNullOrEmpty(ca) || string.IsNullOrEmpty(cb)) ? 0 : SequenceSimilarity(ca, cb);
+
+        var ta = na.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var tb = nb.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var tokenScore = TokenSimilarity(ta, tb);
+
+        return Math.Max(compactScore, tokenScore);
+    }
+
+    private static double TokenSimilarity(string[] a, string[] b)
+    {
+        if (a.Length == 0 || b.Length == 0) return 0;
+        var setA = new HashSet<string>(a, StringComparer.Ordinal);
+        var setB = new HashSet<string>(b, StringComparer.Ordinal);
+        var intersect = setA.Count(x => setB.Contains(x));
+        var union = setA.Union(setB, StringComparer.Ordinal).Count();
+        var jaccard = union == 0 ? 0 : (double)intersect / union;
+        var dice = (setA.Count + setB.Count) == 0 ? 0 : (2.0 * intersect) / (setA.Count + setB.Count);
+        return Math.Max(jaccard, dice);
+    }
+
+    private static double SequenceSimilarity(string a, string b)
+    {
+        if (a.Length == 0 && b.Length == 0) return 1;
+        var maxLen = Math.Max(a.Length, b.Length);
+        if (maxLen == 0) return 1;
+        var dist = LevenshteinDistance(a, b);
+        return 1.0 - ((double)dist / maxLen);
+    }
+
+    private static int LevenshteinDistance(string s, string t)
+    {
+        var n = s.Length;
+        var m = t.Length;
+        if (n == 0) return m;
+        if (m == 0) return n;
+        var d = new int[n + 1, m + 1];
+        for (var i = 0; i <= n; i++) d[i, 0] = i;
+        for (var j = 0; j <= m; j++) d[0, j] = j;
+        for (var i = 1; i <= n; i++)
+        {
+            for (var j = 1; j <= m; j++)
+            {
+                var cost = s[i - 1] == t[j - 1] ? 0 : 1;
+                d[i, j] = Math.Min(Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1), d[i - 1, j - 1] + cost);
+            }
+        }
+        return d[n, m];
+    }
+
+    private static string GetCellStr(IXLWorksheet ws, int r, int c) => c < 1 ? string.Empty : (ws.Cell(r, c).GetFormattedString()?.Trim() ?? string.Empty);
+    private static double GetCellDouble(IXLWorksheet ws, int r, int c)
+    {
+        if (c < 1) return 0;
+        var cell = ws.Cell(r, c);
+        if (cell.TryGetValue<double>(out var d)) return d;
+        return TryParseDecimalFlexible(cell.GetFormattedString(), out var v) ? v : 0;
+    }
+    private static decimal GetCellDecimal(IXLWorksheet ws, int r, int c)
+    {
+        if (c < 1) return 0;
+        var cell = ws.Cell(r, c);
+        if (cell.TryGetValue<decimal>(out var d)) return d;
+        return TryParseDecimalFlexible(cell.GetFormattedString(), out var v) ? (decimal)v : 0;
+    }
+
+    private async Task SaveImportToDatabase()
+    {
+        var toSave = importRows.Where(r => r.IsValid).ToList();
+        if (toSave.Count == 0) return;
+        isImportSaving = true;
+        importSaveTotal = toSave.Count;
+        importSaveProgress = 0;
+        importLastSummary = null;
+        foreach (var r in importRows) { r.ResultMessage = null; r.ResultCss = string.Empty; }
+        StateHasChanged();
+        var ok = 0; var fail = 0;
+        foreach (var r in toSave)
+        {
+            importSaveProgress++;
+            StateHasChanged();
+            try
+            {
+                var product = new ApiProductService.Product
+                {
+                    Product_id = 0,
+                    Product_Code = r.Product_Code,
+                    Product_Name = r.Product_Name,
+                    Product_Type = r.Product_Type,
+                    Unidad = r.Unidad,
+                    Price = r.Price,
+                    Codebar = r.Codebar ?? string.Empty,
+                    Marca = r.Marca ?? string.Empty,
+                    Peso = string.IsNullOrWhiteSpace(r.Peso) ? null : r.Peso,
+                    Costo = r.Costo,
+                    Stock = r.Stock,
+                    IsActive = true
+                };
+                var res = await Api.CreateProductWithDetailsAsync(product);
+                if (res.Success) { ok++; r.ResultMessage = "Guardado"; r.ResultCss = "text-success"; }
+                else { fail++; r.ResultMessage = string.IsNullOrWhiteSpace(res.Error) ? "Error" : res.Error; r.ResultCss = "text-danger"; }
+            }
+            catch (Exception ex) { fail++; r.ResultMessage = ex.Message; r.ResultCss = "text-danger"; }
+        }
+        isImportSaving = false;
+        importSaveProgress = importSaveTotal;
+        importLastSummaryCss = fail == 0 ? "alert-success" : (ok > 0 ? "alert-warning" : "alert-danger");
+        importLastSummary = $"Proceso finalizado: {ok} guardado(s), {fail} con error, {importRows.Count - toSave.Count} omitido(s) por validaciï¿½n.";
+        ToastSvc.Notify(new(fail == 0 ? ToastType.Success : ToastType.Warning, importLastSummary));
+        if (ok > 0)
+        {
+            await LoadProducts();
+            Buscar();
+        }
+        StateHasChanged();
+    }
+
+    private sealed class ImportRow
+    {
+        public int RowNumber { get; set; }
+        public string Product_Code { get; set; } = string.Empty;
+        public string Product_Name { get; set; } = string.Empty;
+        public string Product_Type { get; set; } = string.Empty;
+        public string Unidad { get; set; } = string.Empty;
+        public double Price { get; set; }
+        public string Codebar { get; set; } = string.Empty;
+        public string Marca { get; set; } = string.Empty;
+        public string Peso { get; set; } = string.Empty;
+        public decimal Costo { get; set; }
+        public double Stock { get; set; }
+        public bool IsValid { get; set; }
+        public string Error { get; set; } = string.Empty;
+        public bool HasWarning => !string.IsNullOrWhiteSpace(Warning);
+        public string Warning { get; set; } = string.Empty;
+        public string? ResultMessage { get; set; }
+        public string ResultCss { get; set; } = string.Empty;
     }
 }
