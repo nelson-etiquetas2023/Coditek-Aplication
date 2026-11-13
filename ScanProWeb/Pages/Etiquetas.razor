@@ -300,10 +300,9 @@ else
     private async Task OpenNew()
     {
         editingId = 0;
-        editModel = new ApiLabelService.LabelTemplateDto { Dpmm = 8, WidthMm = 50.8m, LengthMm = 25.4m, CantidadPorRollo = 1000, Codigo = "" };
-        widthText = "2";
-        lengthText = "1";
-        InsertSampleZpl();
+        editModel = new ApiLabelService.LabelTemplateDto { Dpmm = 8, WidthMm = 0m, LengthMm = 0m, CantidadPorRollo = 1000, Codigo = "", Descripcion = "", CodigoZpl = "" };
+        widthText = "";
+        lengthText = "";
         if (editModal is not null) await editModal.ShowAsync();
     }
 
@@ -394,20 +393,5 @@ else
             else previewError = res.Error ?? "No se pudo renderizar.";
         }
         finally { previewLoading = false; }
-    }
-
-    private void InsertSampleZpl()
-    {
-        var dpmm = editModel.Dpmm > 0 ? editModel.Dpmm : 8;
-        var pwDots = Math.Max(1, (int)Math.Round(editModel.WidthMm * dpmm));
-        var llDots = Math.Max(1, (int)Math.Round(editModel.LengthMm * dpmm));
-        var name = "Etiqueta";
-        editModel.CodigoZpl = $@"^XA
-^PW{pwDots}
-^LL{llDots}
-^CF0,30
-^FO20,20^FD{name}^FS
-^FO20,60^BCN,60,Y,N,N^FD1234567890^FS
-^XZ";
     }
 }
