@@ -24,6 +24,10 @@ public class LabelsController(ILabelsService service) : ControllerBase
         return item is null ? NotFound() : Ok(item);
     }
 
+    [HttpGet("next-code")]
+    public async Task<ActionResult<object>> NextCode() =>
+        Ok(new { Codigo = await service.GetNextCodigoAsync() });
+
     [HttpPost]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<LabelTemplate>> Create([FromBody] LabelTemplate label)

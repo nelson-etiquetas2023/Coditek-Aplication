@@ -48,6 +48,17 @@ public class ApiLabelService(IHttpClientFactory factory, IJSRuntime js)
         catch { return null; }
     }
 
+    public async Task<string?> GetNextCodigoAsync()
+    {
+        try
+        {
+            var client = await CreateAuthorizedClientAsync();
+            var dto = await client.GetFromJsonAsync<NextCodigoDto>("api/labels/next-code", jsonOptions);
+            return dto?.Codigo;
+        }
+        catch { return null; }
+    }
+
     public async Task<(bool Success, string? Error, LabelTemplateDto? Data)> CreateAsync(LabelTemplateDto label)
     {
         try
@@ -122,4 +133,6 @@ public class ApiLabelService(IHttpClientFactory factory, IJSRuntime js)
     }
 
     public record RenderRequest(string Zpl, decimal WidthMm, decimal LengthMm, int Dpmm = 8, int Index = 0);
+
+    public record NextCodigoDto(string Codigo);
 }

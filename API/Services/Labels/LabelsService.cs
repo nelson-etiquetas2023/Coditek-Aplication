@@ -12,12 +12,34 @@ public class LabelsService(AppDbContext context) : ILabelsService
     public async Task<LabelTemplate?> GetByIdAsync(int id) =>
         await context.LabelTemplates.FindAsync(id);
 
+    public async Task<string> GetNextCodigoAsync()
+    {
+        var maxId = await context.LabelTemplates.MaxAsync(l => (int?)l.Id) ?? 0;
+        return $"ETI-{maxId + 1:D4}";
+    }
+
     public async Task<LabelTemplate> CreateAsync(LabelTemplate label)
     {
+        var requested = label.Codigo?.Trim() ?? string.Empty;
         label.Id = 0;
-        label.Codigo = string.Empty; // se asigna tras el INSERT a partir del Id
+        label.Codigo = string.Empty; // se asigna tras el INSERT
         context.LabelTemplates.Add(label);
         await context.SaveChangesAsync();
+
+        if (requested.Length > 0 && !await context.LabelTemplates.AnyAsync(l => l.Codigo == requested))
+        {
+            label.Codigo = requested;
+            try
+            {
+                await context.SaveChangesAsync();
+                return label;
+            }
+            catch (DbUpdateException)
+            {
+                // Otra creación simultánea tomó el código solicitado: usar el basado en Id.
+            }
+        }
+
         label.Codigo = $"ETI-{label.Id:D4}";
         await context.SaveChangesAsync();
         return label;
