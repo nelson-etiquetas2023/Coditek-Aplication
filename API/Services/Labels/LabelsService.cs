@@ -7,7 +7,7 @@ namespace API.Services.Labels;
 public class LabelsService(AppDbContext context) : ILabelsService
 {
     public async Task<List<LabelTemplate>> GetAllAsync() =>
-        await context.LabelTemplates.OrderBy(l => l.Nombre).ThenBy(l => l.Id).ToListAsync();
+        await context.LabelTemplates.OrderBy(l => l.Codigo).ThenBy(l => l.Id).ToListAsync();
 
     public async Task<LabelTemplate?> GetByIdAsync(int id) =>
         await context.LabelTemplates.FindAsync(id);
@@ -15,7 +15,10 @@ public class LabelsService(AppDbContext context) : ILabelsService
     public async Task<LabelTemplate> CreateAsync(LabelTemplate label)
     {
         label.Id = 0;
+        label.Codigo = string.Empty; // se asigna tras el INSERT a partir del Id
         context.LabelTemplates.Add(label);
+        await context.SaveChangesAsync();
+        label.Codigo = $"ETI-{label.Id:D4}";
         await context.SaveChangesAsync();
         return label;
     }
@@ -25,7 +28,6 @@ public class LabelsService(AppDbContext context) : ILabelsService
         var existing = await context.LabelTemplates.FindAsync(id);
         if (existing is null) return null;
 
-        existing.Nombre = label.Nombre;
         existing.Descripcion = label.Descripcion;
         existing.WidthMm = label.WidthMm;
         existing.LengthMm = label.LengthMm;

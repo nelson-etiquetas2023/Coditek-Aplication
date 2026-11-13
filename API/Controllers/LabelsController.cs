@@ -28,8 +28,8 @@ public class LabelsController(ILabelsService service) : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<LabelTemplate>> Create([FromBody] LabelTemplate label)
     {
-        if (string.IsNullOrWhiteSpace(label.Nombre))
-            return BadRequest("El nombre de la etiqueta es obligatorio.");
+        if (string.IsNullOrWhiteSpace(label.Descripcion))
+            return BadRequest("La descripción de la etiqueta es obligatoria.");
         var created = await service.CreateAsync(label);
         return CreatedAtAction(nameof(Get), new { id = created.Id }, created);
     }
@@ -38,8 +38,8 @@ public class LabelsController(ILabelsService service) : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<LabelTemplate>> Update(int id, [FromBody] LabelTemplate label)
     {
-        if (string.IsNullOrWhiteSpace(label.Nombre))
-            return BadRequest("El nombre de la etiqueta es obligatorio.");
+        if (string.IsNullOrWhiteSpace(label.Descripcion))
+            return BadRequest("La descripción de la etiqueta es obligatoria.");
         var updated = await service.UpdateAsync(id, label);
         return updated is null ? NotFound() : Ok(updated);
     }

@@ -7,10 +7,11 @@ public class LabelTemplate
     [Key]
     public int Id { get; set; }
 
-    [Required(ErrorMessage = "El nombre de la etiqueta es obligatorio.")]
-    [MaxLength(200)]
-    public string Nombre { get; set; } = "";
+    /// <summary>Código único auto-generado al crear (ETI-0001…). Lo asigna el servidor.</summary>
+    [MaxLength(50)]
+    public string Codigo { get; set; } = "";
 
+    [Required(ErrorMessage = "La descripción de la etiqueta es obligatoria.")]
     [MaxLength(1000)]
     public string Descripcion { get; set; } = "";
 

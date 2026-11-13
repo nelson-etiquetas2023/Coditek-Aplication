@@ -110,7 +110,9 @@ public class ApiLabelService(IHttpClientFactory factory, IJSRuntime js)
     public class LabelTemplateDto
     {
         public int Id { get; set; }
-        public string Nombre { get; set; } = "";
+        public string Codigo { get; set; } = "";
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "La descripción de la etiqueta es obligatoria.")]
+        [System.ComponentModel.DataAnnotations.StringLength(1000)]
         public string Descripcion { get; set; } = "";
         public decimal WidthMm { get; set; }
         public decimal LengthMm { get; set; }

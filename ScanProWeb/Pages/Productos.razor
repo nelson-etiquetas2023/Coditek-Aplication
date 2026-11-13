@@ -9,6 +9,14 @@
 
 <PageTitle>Productos</PageTitle>
 
+@if (isProductsLoading)
+{
+    <div class="products-loading" role="status" aria-live="polite" aria-label="Cargando productos…">
+        <span class="products-loading-spinner" aria-hidden="true"></span>
+        <h3 class="products-loading-title">Cargando productos…</h3>
+    </div>
+}
+
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0 d-flex align-items-center gap-2"><Icon Name="IconName.Box" Size="IconSize.x2" /> Productos
         <div class="dropdown">
@@ -36,14 +44,11 @@
 <div class="d-flex gap-3">
     <div style="flex: 0 0 calc(30% - 8px); min-width: 0;">
         <div class="card h-100">
-            <div class="card-header">
-                <strong><Icon Name="IconName.Search" /> Buscador</strong>
-            </div>
             <div class="card-body">
                 <div class="mb-3">
                     <input id="buscadorProductos" class="form-control" type="text" value="@searchText" @oninput="OnSearchTextChanged" placeholder="Buscar por ID, código o nombre" aria-label="Buscador" />
                 </div>
-                <div class="mb-3 d-flex align-items-center gap-3 flex-wrap">
+                <div class="mb-2 d-flex align-items-center gap-2 flex-nowrap product-filter-radios">
                     <label class="form-check mb-0">
                         <input class="form-check-input" type="radio" name="filtroTipo" checked="@(filtroTipo == "todos")" @onchange='() => OnFiltroTipoChanged("todos")' />
                         <span class="form-check-label">Todos</span>
@@ -84,8 +89,7 @@
                                         <div class="fw-semibold text-truncate">@p.Product_Name</div>
                                         <small class="text-muted">ID @p.Product_id · @p.Product_Type</small>
                                     </div>
-                                    <span class="badge bg-light text-dark border">@p.Stock Ex.</span>
-                                    <button class="btn btn-sm btn-link p-1 text-dark fw-bold" type="button" title="Imprimir etiqueta" @onclick:stopPropagation="true" @onclick="() => OpenLabelPrint(item)"><Icon Name="IconName.UpcScan" /></button>
+                                    <button class="btn btn-sm btn-link p-1 text-dark fw-bold" type="button" title="Imprimir etiqueta" aria-label="Imprimir etiqueta" @onclick:stopPropagation="true" @onclick="() => OpenLabelPrint(item)"><Icon Name="IconName.UpcScan" /></button>
                                 </div>
                             }
                         </div>
@@ -93,9 +97,10 @@
                     }
                     else
                     {
-                        <div class="productos-grid" style="max-height: 600px; overflow-y: auto; overflow-x: hidden; border: 1px solid #dee2e6; border-radius: 6px; margin-top: 4px;">
-                            <QuickGrid Items="productsFiltered.AsQueryable()" Class="table table-striped table-sm mb-0">
-                                <TemplateColumn Title="It." Class="col-id">
+                        <div class="productos-grid">
+                            <div class="productos-grid-title"><Icon Name="IconName.List" /><h3>Listado de Productos</h3></div>
+                            <QuickGrid Items="productsFiltered.AsQueryable()" Class="table table-sm mb-0 products-compact-table">
+                                <TemplateColumn Title="#" Class="col-id">
                                     @{
                                         var list = productsFiltered as IList<ApiProductService.Product> ?? productsFiltered.ToList();
                                         var idx = list.IndexOf(context);
@@ -104,17 +109,16 @@
                                     @it
                                 </TemplateColumn>
                                 <TemplateColumn Title="Product Name" Class="col-name">
-                                    <button class="btn btn-link p-0 text-decoration-none fw-semibold text-start w-100 @(selectedProduct is not null && context.Product_id == selectedProduct.Product_id ? "selected-product" : "")" title="Ver detalle" @onclick="() => SelectProduct(context)" style="white-space: normal; text-align: left;">
+                                    <button class="btn btn-link p-0 text-decoration-none fw-semibold text-start w-100 product-name-text @(selectedProduct is not null && context.Product_id == selectedProduct.Product_id ? "selected-product" : "")" type="button" title="@context.Product_Name" aria-label="@($"Ver detalle de {context.Product_Name}")" @onclick="() => SelectProduct(context)">
                                         @context.Product_Name
                                     </button>
                                 </TemplateColumn>
-                                <PropertyColumn Property="@(p => p.Stock)" Title="Ex." Class="col-stock" />
-                                <TemplateColumn Title="Acc." Class="col-actions">
-                                    <button class="btn btn-sm btn-link p-1 text-dark fw-bold" type="button" title="Imprimir etiqueta" @onclick="() => OpenLabelPrint(context)"><Icon Name="IconName.UpcScan" /></button>
+                                <TemplateColumn Title="Cód." Class="col-barcode">
+                                    <button class="barcode-print-button" type="button" title="Generar etiqueta de código de barras" aria-label="Generar etiqueta de código de barras" @onclick:stopPropagation="true" @onclick="() => OpenLabelPrint(context)"><Icon Name="IconName.UpcScan" /></button>
                                 </TemplateColumn>
                             </QuickGrid>
                         </div>
-                        <div class="form-text mt-2">Haz clic en el nombre para ver el detalle en el tabpage. El grid tiene scroll vertical.</div>
+                        <div class="form-text mt-2">Haz clic en el nombre para ver el detalle en el tabpage.</div>
                     }
                 }
             </div>
@@ -820,11 +824,20 @@
     private bool[] detailImageRemoved = new bool[3];
     private string[] detailImagePreviews = new string[3];
 
+    private bool isProductsLoading = true;
+
     protected override async Task OnInitializedAsync()
     {
-        categorias = await ConfigApi.GetCategoriesAsync();
-        unidades = await ConfigApi.GetProductUnitsAsync();
-        await LoadProducts();
+        try
+        {
+            categorias = await ConfigApi.GetCategoriesAsync();
+            unidades = await ConfigApi.GetProductUnitsAsync();
+            await LoadProducts();
+        }
+        finally
+        {
+            isProductsLoading = false;
+        }
     }
 
     private async Task OpenCategoryManager() => await categoryUnitManager.ShowCategoriesAsync();

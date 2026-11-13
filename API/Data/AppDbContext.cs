@@ -42,6 +42,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         modelBuilder.Entity<LabelTemplate>()
             .Property(l => l.LengthMm)
             .HasPrecision(10, 2);
+        modelBuilder.Entity<LabelTemplate>()
+            .Property(l => l.Codigo)
+            .HasMaxLength(50);
+        modelBuilder.Entity<LabelTemplate>()
+            .HasIndex(l => l.Codigo)
+            .IsUnique();
 
         modelBuilder.Entity<ProductAudit>()
             .HasIndex(a => a.ProductId);

@@ -38,7 +38,7 @@ else
                 <div class="card-body p-2 d-flex flex-column">
                     <div class="input-group input-group-sm mb-2">
                         <span class="input-group-text"><Icon Name="IconName.Search" /></span>
-                        <input class="form-control" placeholder="Buscar por ID, nombre o descripción..." @bind="searchText" @bind:event="oninput" />
+                        <input class="form-control" placeholder="Buscar por código o descripción..." @bind="searchText" @bind:event="oninput" />
                     </div>
                     <div class="small text-muted mb-2">
                         <strong>Total:</strong> @labels.Count &nbsp;|&nbsp; <strong>Mostrados:</strong> @FilteredLabels.Count()
@@ -47,8 +47,8 @@ else
                         <table class="table table-sm table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width:56px">ID</th>
-                                    <th>Nombre</th>
+                                    <th style="width:84px">Código</th>
+                                    <th>Descripción</th>
                                     <th style="width:90px">Rollo</th>
                                 </tr>
                             </thead>
@@ -63,10 +63,9 @@ else
                                     {
                                         var isSelected = selected?.Id == l.Id;
                                         <tr class="@(isSelected ? "table-primary" : "")" style="cursor:pointer" @onclick="() => SelectLabel(l)">
-                                            <td>@l.Id</td>
+                                            <td class="font-monospace small">@l.Codigo</td>
                                             <td>
-                                                <div class="fw-semibold text-truncate" style="max-width:180px" title="@l.Nombre">@l.Nombre</div>
-                                                <div class="small text-muted text-truncate" style="max-width:180px" title="@l.Descripcion">@l.Descripcion</div>
+                                                <div class="fw-semibold text-truncate" style="max-width:200px" title="@l.Descripcion">@l.Descripcion</div>
                                             </td>
                                             <td>@l.CantidadPorRollo</td>
                                         </tr>
@@ -95,8 +94,8 @@ else
                 {
                     <div class="card-header d-flex justify-content-between align-items-center py-2">
                         <div>
-                            <strong>@selected.Nombre</strong>
-                            <span class="text-muted small ms-2">ID: @selected.Id</span>
+                            <strong>@selected.Descripcion</strong>
+                            <span class="text-muted small ms-2 font-monospace">@selected.Codigo</span>
                         </div>
                         <div class="d-flex gap-1">
                             <button class="btn btn-sm btn-outline-primary" type="button" @onclick="() => OpenEdit(selected)" disabled="@isBusy"><Icon Name="IconName.Pencil" /> Editar</button>
@@ -112,25 +111,21 @@ else
                         @if (detailTab == "detalle")
                         {
                             <div class="row g-2">
-                                <div class="col-md-6">
-                                    <label class="form-label small text-muted mb-0">Nombre</label>
-                                    <div class="fw-semibold">@selected.Nombre</div>
+                                <div class="col-md-4">
+                                    <label class="form-label small text-muted mb-0">Código</label>
+                                    <div class="font-monospace fw-semibold">@selected.Codigo</div>
                                 </div>
-                                <div class="col-md-3">
-                                    <label class="form-label small text-muted mb-0">Ancho (mm)</label>
-                                    <div>@selected.WidthMm</div>
+                                <div class="col-md-4">
+                                    <label class="form-label small text-muted mb-0">Ancho (in)</label>
+                                    <div>@((selected.WidthMm / 25.4m).ToString("0.##")) in</div>
                                 </div>
-                                <div class="col-md-3">
-                                    <label class="form-label small text-muted mb-0">Largo (mm)</label>
-                                    <div>@selected.LengthMm</div>
+                                <div class="col-md-4">
+                                    <label class="form-label small text-muted mb-0">Largo (in)</label>
+                                    <div>@((selected.LengthMm / 25.4m).ToString("0.##")) in</div>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label small text-muted mb-0">Cantidad por rollo</label>
                                     <div>@selected.CantidadPorRollo</div>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label small text-muted mb-0">Densidad (dpmm)</label>
-                                    <div>@selected.Dpmm (@(selected.Dpmm * 25) dpi aprox.)</div>
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label small text-muted mb-0">Descripción</label>
@@ -153,7 +148,7 @@ else
                                             @if (previewLoading) { <span class="spinner-border spinner-border-sm me-1"></span> }
                                             <Icon Name="IconName.Eye" /> Previsualizar
                                         </button>
-                                        <span class="small text-muted">@selected.WidthMm × @selected.LengthMm mm, @selected.Dpmm dpmm</span>
+                                        <span class="small text-muted">@((selected.WidthMm / 25.4m).ToString("0.##")) × @((selected.LengthMm / 25.4m).ToString("0.##")) in</span>
                                     </div>
                                     @if (!string.IsNullOrEmpty(previewError))
                                     {
@@ -186,48 +181,40 @@ else
     </div>
 }
 
-<Modal @ref="editModal" Title="@(editingId == 0 ? "Nueva etiqueta" : "Editar etiqueta")" Size="ModalSize.Large">
+<Modal @ref="editModal">
+    <HeaderTemplate><Icon Name="IconName.UpcScan" Size="IconSize.x3" /><strong> @(editingId == 0 ? "Nueva etiqueta" : "Editar etiqueta")</strong></HeaderTemplate>
     <BodyTemplate>
         <EditForm Model="@editModel" OnValidSubmit="SaveAsync">
             <DataAnnotationsValidator />
             <div class="row g-2">
-                <div class="col-md-8">
-                    <label class="form-label">Nombre de la etiqueta *</label>
-                    <InputText class="form-control" @bind-Value="editModel.Nombre" />
-                    <ValidationMessage For="() => editModel.Nombre" />
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Cantidad por rollo</label>
-                    <InputNumber class="form-control" @bind-Value="editModel.CantidadPorRollo" />
+                <div class="col-12">
+                    <label class="form-label">ID Código</label>
+                    <input class="form-control font-monospace" type="text" value="@editModel.Codigo" placeholder="ETI-0000" disabled />
                 </div>
                 <div class="col-12">
-                    <label class="form-label">Descripción</label>
-                    <InputText class="form-control" @bind-Value="editModel.Descripcion" />
+                    <label class="form-label">Descripción de la etiqueta *</label>
+                    <InputText class="form-control" @bind-Value="editModel.Descripcion" placeholder="Ej. Etiqueta para productos de 2x1 pulgadas" />
+                    <ValidationMessage For="() => editModel.Descripcion" />
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label">Ancho (mm) *</label>
-                    <InputNumber class="form-control" @bind-Value="editModel.WidthMm" />
+                @if (editingId != 0)
+                {
+                    <div class="col-12">
+                        <label class="form-label">Cantidad por rollo</label>
+                        <InputNumber class="form-control" @bind-Value="editModel.CantidadPorRollo" />
+                    </div>
+                }
+                <div class="col-md-6">
+                    <label class="form-label">Ancho (in) *</label>
+                    <input class="form-control" type="text" inputmode="decimal" placeholder="Ej. 1.2" @bind="widthText" @bind:event="oninput" />
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label">Largo (mm) *</label>
-                    <InputNumber class="form-control" @bind-Value="editModel.LengthMm" />
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Densidad (dpmm)</label>
-                    <InputSelect class="form-select" @bind-Value="editModel.Dpmm">
-                        <option value="6">6 (152 dpi)</option>
-                        <option value="8">8 (203 dpi)</option>
-                        <option value="12">12 (300 dpi)</option>
-                        <option value="24">24 (600 dpi)</option>
-                    </InputSelect>
-                </div>
-                <div class="col-md-3 d-flex align-items-end">
-                    <button type="button" class="btn btn-outline-secondary w-100" @onclick="InsertSampleZpl"><Icon Name="IconName.FileCode" /> ZPL ejemplo</button>
+                <div class="col-md-6">
+                    <label class="form-label">Largo (in) *</label>
+                    <input class="form-control" type="text" inputmode="decimal" placeholder="Ej. 0.7" @bind="lengthText" @bind:event="oninput" />
                 </div>
                 <div class="col-12">
                     <label class="form-label">Código ZPL *</label>
                     <InputTextArea class="form-control font-monospace" rows="10" @bind-Value="editModel.CodigoZpl" />
-                    <div class="form-text">Debe iniciar con <code>^XA</code> y terminar con <code>^XZ</code>. Ajusta <code>^PW</code>/<code>^LL</code> según tamaño y dpmm.</div>
+                    <div class="form-text">Debe iniciar con <code>^XA</code> y terminar con <code>^XZ</code>.</div>
                 </div>
             </div>
             <div class="d-flex justify-content-end gap-2 mt-3">
@@ -260,6 +247,8 @@ else
     private Modal? editModal;
     private ApiLabelService.LabelTemplateDto editModel = new();
     private int editingId;
+    private string widthText = "2";
+    private string lengthText = "1";
 
     private bool previewLoading;
     private string? previewDataUrl;
@@ -273,7 +262,7 @@ else
             if (string.IsNullOrEmpty(q)) return labels;
             return labels.Where(l =>
                 l.Id.ToString().Contains(q, StringComparison.OrdinalIgnoreCase) ||
-                (l.Nombre ?? "").Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                (l.Codigo ?? "").Contains(q, StringComparison.OrdinalIgnoreCase) ||
                 (l.Descripcion ?? "").Contains(q, StringComparison.OrdinalIgnoreCase));
         }
     }
@@ -311,7 +300,9 @@ else
     private async Task OpenNew()
     {
         editingId = 0;
-        editModel = new ApiLabelService.LabelTemplateDto { Dpmm = 8, WidthMm = 50, LengthMm = 25, CantidadPorRollo = 1000 };
+        editModel = new ApiLabelService.LabelTemplateDto { Dpmm = 8, WidthMm = 50.8m, LengthMm = 25.4m, CantidadPorRollo = 1000, Codigo = "" };
+        widthText = "2";
+        lengthText = "1";
         InsertSampleZpl();
         if (editModal is not null) await editModal.ShowAsync();
     }
@@ -321,18 +312,33 @@ else
         editingId = l.Id;
         editModel = new ApiLabelService.LabelTemplateDto
         {
-            Id = l.Id, Nombre = l.Nombre, Descripcion = l.Descripcion,
+            Id = l.Id, Codigo = l.Codigo, Descripcion = l.Descripcion,
             WidthMm = l.WidthMm, LengthMm = l.LengthMm,
             CantidadPorRollo = l.CantidadPorRollo, CodigoZpl = l.CodigoZpl, Dpmm = l.Dpmm
         };
+        widthText = Math.Round(l.WidthMm / 25.4m, 4).ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
+        lengthText = Math.Round(l.LengthMm / 25.4m, 4).ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
         if (editModal is not null) await editModal.ShowAsync();
     }
 
     private async Task CloseEdit() { if (editModal is not null) await editModal.HideAsync(); }
 
+    private static bool TryParseInches(string? text, out decimal value)
+    {
+        var normalized = (text ?? "").Trim().Replace(',', '.');
+        return decimal.TryParse(normalized, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out value);
+    }
+
     private async Task SaveAsync()
     {
-        if (string.IsNullOrWhiteSpace(editModel.Nombre)) { ToastSvc.Notify(new(ToastType.Danger, "El nombre es obligatorio.")); return; }
+        if (string.IsNullOrWhiteSpace(editModel.Descripcion)) { ToastSvc.Notify(new(ToastType.Danger, "La descripción de la etiqueta es obligatoria.")); return; }
+        if (!TryParseInches(widthText, out var wIn) || !TryParseInches(lengthText, out var lIn))
+        {
+            ToastSvc.Notify(new(ToastType.Danger, "Ancho y largo deben ser números en pulgadas, ej. 1.2 o 0.7."));
+            return;
+        }
+        editModel.WidthMm = Math.Round(wIn * 25.4m, 2);
+        editModel.LengthMm = Math.Round(lIn * 25.4m, 2);
         if (editModel.WidthMm <= 0 || editModel.LengthMm <= 0) { ToastSvc.Notify(new(ToastType.Danger, "Ancho y largo deben ser mayores a 0.")); return; }
         if (string.IsNullOrWhiteSpace(editModel.CodigoZpl)) { ToastSvc.Notify(new(ToastType.Danger, "El código ZPL es obligatorio.")); return; }
 
@@ -358,7 +364,7 @@ else
 
     private async Task ConfirmDelete(ApiLabelService.LabelTemplateDto l)
     {
-        if (!await JS.InvokeAsync<bool>("confirm", $"¿Eliminar la etiqueta '{l.Nombre}' (ID {l.Id})?")) return;
+        if (!await JS.InvokeAsync<bool>("confirm", $"¿Eliminar la etiqueta '{l.Descripcion}' ({l.Codigo})?")) return;
         isBusy = true;
         try
         {
@@ -395,7 +401,7 @@ else
         var dpmm = editModel.Dpmm > 0 ? editModel.Dpmm : 8;
         var pwDots = Math.Max(1, (int)Math.Round(editModel.WidthMm * dpmm));
         var llDots = Math.Max(1, (int)Math.Round(editModel.LengthMm * dpmm));
-        var name = string.IsNullOrWhiteSpace(editModel.Nombre) ? "Etiqueta" : editModel.Nombre;
+        var name = "Etiqueta";
         editModel.CodigoZpl = $@"^XA
 ^PW{pwDots}
 ^LL{llDots}

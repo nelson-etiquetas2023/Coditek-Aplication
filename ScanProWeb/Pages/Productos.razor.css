@@ -1,12 +1,88 @@
-/* Grid de productos: ID / Ex. con el menor ancho, Product Name ancho (30% panel izquierdo) */
+/* Radios de filtro (Todos / Categoría / Unidad / Marca): una sola línea, texto compacto */
+.product-filter-radios {
+    overflow-x: auto;
+    scrollbar-width: none;
+}
 
-.productos-grid table {
+.product-filter-radios::-webkit-scrollbar {
+    display: none;
+}
+
+.product-filter-radios .form-check {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding-left: 0;
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+
+.product-filter-radios .form-check-input {
+    float: none;
+    margin: 0;
+    flex: 0 0 auto;
+    width: 0.85em;
+    height: 0.85em;
+}
+
+.product-filter-radios .form-check-label {
+    font-size: 0.72rem;
+    line-height: 1.2;
+}
+
+/* Grid de productos: contador compacto, nombre flexible y acción de código de barras */
+
+.productos-grid {
+    margin-top: 0.5rem;
+    overflow: hidden;
+    background: var(--color-background, #ffffff);
+    border: 1px solid var(--color-border, #b4d6ea);
+    border-radius: 0.875rem;
+    box-shadow: 0 0.5rem 1.25rem rgb(3 17 39 / 8%), inset 0 1px 0 rgb(255 255 255 / 80%);
+}
+
+.productos-grid-title {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.65rem;
+    color: #ffffff;
+    background: linear-gradient(180deg, #12336b 0%, #071d48 100%);
+    border-bottom: 1px solid var(--color-primary, #195ccd);
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.productos-grid-title h3 {
+    margin: 0;
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+}
+
+.productos-grid-title .bi {
+    color: var(--color-secondary, #b4d6ea);
+}
+
+.productos-grid ::deep .products-compact-table {
     table-layout: fixed;
     width: 100%;
+    margin-bottom: 0;
+    font-size: 0.8rem;
+    line-height: 1.2;
+    color: var(--color-text, #031127);
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--color-background, #ffffff);
 }
 
 .productos-grid col:nth-child(1) {
-    width: 40px;
+    width: 20px;
 }
 
 .productos-grid col:nth-child(2) {
@@ -14,91 +90,142 @@
 }
 
 .productos-grid col:nth-child(3) {
-    width: 48px;
+    width: 20px;
 }
 
-.productos-grid col:nth-child(4) {
-    width: 40px;
+.productos-grid ::deep .products-compact-table thead,
+.productos-grid ::deep .products-compact-table thead tr {
+    visibility: collapse;
+    height: 0;
+    border: 0;
 }
 
-.productos-grid .col-id,
-.productos-grid .col-stock,
-.productos-grid .col-actions {
+.productos-grid ::deep .products-compact-table thead th {
+    height: 0;
+    padding: 0 !important;
+    overflow: hidden;
+    font-size: 0;
+    line-height: 0;
+    border: 0 !important;
+}
+
+.productos-grid ::deep .products-compact-table tbody td {
+    background: var(--color-background, #ffffff);
+    border-bottom: 1px solid rgb(180 214 234 / 55%);
+}
+
+.productos-grid ::deep .products-compact-table tbody tr:nth-child(even) td {
+    background: #f8fbfe;
+}
+
+.productos-grid ::deep td.col-id,
+.productos-grid ::deep th.col-id {
+    width: 20px;
+    min-width: 20px;
+    max-width: 20px;
+    padding: 0 !important;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.66rem;
+    font-weight: 600;
+    color: var(--color-text-secondary, #4a5a7a);
     text-align: center;
-    min-width: 40px;
 }
 
-.productos-grid .col-name {
+.productos-grid ::deep td.col-barcode,
+.productos-grid ::deep th.col-barcode {
+    width: 20px;
+    min-width: 20px;
+    max-width: 20px;
+    padding: 0 !important;
+    text-align: center;
+}
+
+.productos-grid ::deep td.col-name,
+.productos-grid ::deep th.col-name {
     word-break: normal;
+    min-width: 0;
     width: auto;
+    text-align: left;
     border-left: none !important;
     border-right: none !important;
 }
 
-.productos-grid ::deep td.col-name {
-    border-left: none !important;
-    border-right: none !important;
-}
-
-.productos-grid .col-name .btn-link {
+.productos-grid .product-name-text {
     display: block;
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding: 0.16rem 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--color-text, #031127);
     text-align: left;
-    white-space: nowrap !important;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    border-radius: 0.35rem;
     border: 0;
+    box-shadow: none;
+    transition: color 0.15s ease, background-color 0.15s ease, outline-color 0.15s ease;
+}
+
+.productos-grid .product-name-text:hover {
+    color: var(--color-primary, #195ccd);
+    background: #eef5ff;
+}
+
+.productos-grid .product-name-text:focus-visible {
+    outline: 2px solid var(--color-primary, #195ccd);
+    outline-offset: -2px;
     box-shadow: none;
 }
 
-.productos-grid .col-name .btn-link:focus,
-.productos-grid .col-name .btn-link:active,
-.productos-grid .col-name .btn-link:focus-visible {
-    border: 0;
-    box-shadow: none;
-    outline: none;
+.productos-grid ::deep table td,
+.productos-grid ::deep table th {
+    padding-left: 3px !important;
+    padding-right: 3px !important;
+    vertical-align: middle;
 }
 
-.productos-grid table td,
-.productos-grid table th {
-    padding-left: 6px !important;
-    padding-right: 6px !important;
+.productos-grid ::deep table tbody tr:last-child td {
+    border-bottom: 0;
 }
 
-.productos-grid .col-name .btn-link {
-    display: block;
-    width: 100%;
-    text-align: left;
-}
-
-/* Fila seleccionada: azul clarito en toda la fila (::deep para llegar a filas del QuickGrid hijo) */
+/* Fila seleccionada: estilo profesional */
 .productos-grid ::deep tbody tr {
     cursor: pointer;
-    transition: background-color .12s;
+    transition: background-color 0.15s ease;
 }
 
-.productos-grid ::deep tbody tr:hover {
-    background: #e7f1ff;
-}
-
-.productos-grid ::deep tbody tr:has(.selected-product) {
-    background: #cfe2ff !important;
+.productos-grid ::deep tbody tr:hover td {
+    background: #eaf3ff;
 }
 
 .productos-grid ::deep tbody tr:has(.selected-product) td {
-    background: #cfe2ff !important;
-    color: #084298 !important;
+    background: #dceaff !important;
+    color: var(--color-primary-dark, #071d48);
 }
 
-.productos-grid ::deep tbody tr:has(.selected-product) .btn-link {
-    color: #084298 !important;
+.productos-grid ::deep tbody tr:has(.selected-product) td:first-child {
+    box-shadow: inset 3px 0 0 var(--color-primary, #195ccd);
 }
 
 .productos-grid .selected-product {
-    background: #cfe2ff !important;
-    color: #084298 !important;
+    color: var(--color-primary-dark, #071d48) !important;
+    background: transparent !important;
+    outline: 2px solid rgb(25 92 205 / 24%);
+    outline-offset: -2px;
     border: 0 !important;
     box-shadow: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .productos-grid ::deep tbody tr,
+    .productos-grid .product-name-text,
+    .barcode-print-button {
+        transition: none;
+    }
 }
 
 /* Vista lista: fila seleccionada azul clarita */
@@ -287,6 +414,91 @@
 .import-grid-wrap ::deep tr.table-warning:hover > td,
 .import-grid-wrap ::deep tr.table-warning:hover > th {
     background-color: #ffe8a1 !important;
+}
+
+/* Loading flotante al entrar al módulo de productos */
+.products-loading {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    background: transparent;
+    pointer-events: none;
+}
+
+.products-loading-spinner {
+    width: 3.25rem;
+    height: 3.25rem;
+    border: 0.32rem solid rgb(25 92 205 / 16%);
+    border-top-color: #195ccd;
+    border-radius: 50%;
+    animation: products-loading-spin 0.85s linear infinite;
+}
+
+.products-loading-title {
+    margin: 0;
+    color: #071d48;
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    text-align: center;
+    text-wrap: balance;
+}
+
+@keyframes products-loading-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .products-loading-spinner {
+        animation-duration: 1.6s;
+    }
+}
+
+/* Acción para abrir la etiqueta de código de barras desde la vista Grid */
+.barcode-print-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    padding: 0;
+    color: var(--color-primary, #195ccd);
+    background: linear-gradient(180deg, #ffffff 0%, #f3f8fe 100%);
+    border: 1px solid var(--color-border, #b4d6ea);
+    border-radius: 0.3rem;
+    font-size: 0.55rem;
+    box-shadow: 0 1px 2px rgb(3 17 39 / 8%), inset 0 1px 0 #ffffff;
+    cursor: pointer;
+    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.barcode-print-button ::deep svg,
+.barcode-print-button ::deep i {
+    width: 0.55rem;
+    height: 0.55rem;
+    font-size: 0.55rem;
+    line-height: 1;
+}
+
+.barcode-print-button:hover {
+    color: #ffffff;
+    background: linear-gradient(180deg, var(--color-primary, #195ccd) 0%, var(--color-primary-dark, #071d48) 100%);
+    border-color: var(--color-primary, #195ccd);
+    box-shadow: 0 2px 6px rgb(25 92 205 / 28%);
+}
+
+.barcode-print-button:focus-visible {
+    outline: 0;
+    border-color: var(--color-primary-dark, #071d48);
+    box-shadow: 0 0 0 0.2rem rgb(25 92 205 / 24%);
 }
 
 /* --- Fotos: estilo profesional --- */
