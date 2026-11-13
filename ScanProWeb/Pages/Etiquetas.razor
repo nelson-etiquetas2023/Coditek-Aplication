@@ -184,7 +184,7 @@ else
 <Modal @ref="editModal">
     <HeaderTemplate><Icon Name="IconName.UpcScan" Size="IconSize.x3" /><strong> @(editingId == 0 ? "Nueva etiqueta" : "Editar etiqueta")</strong></HeaderTemplate>
     <BodyTemplate>
-        <EditForm Model="@editModel" OnValidSubmit="SaveAsync">
+        <EditForm Model="@editModel" OnSubmit="SaveAsync">
             <DataAnnotationsValidator />
             <div class="row g-2">
                 <div class="col-12">
