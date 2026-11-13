@@ -130,6 +130,8 @@ public class ApiLabelService(IHttpClientFactory factory, IJSRuntime js)
         public int CantidadPorRollo { get; set; }
         public string CodigoZpl { get; set; } = "";
         public int Dpmm { get; set; } = 8;
+        /// <summary>Tipo de material: Transferencia o Directo.</summary>
+        public string TipoMaterial { get; set; } = "Transferencia";
     }
 
     public record RenderRequest(string Zpl, decimal WidthMm, decimal LengthMm, int Dpmm = 8, int Index = 0);

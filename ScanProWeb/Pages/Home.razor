@@ -1,5 +1,6 @@
 ﻿@page "/home"
 @inject ApiProductService Api
+@inject ApiLabelService LabelApi
 
 <PageTitle>Panel de control</PageTitle>
 
@@ -35,10 +36,38 @@
             </div>
         </div>
     </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-start justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase mb-1">Formatos de etiquetas</div>
+                        @if (isLoading)
+                        {
+                            <div class="text-muted">Cargando...</div>
+                        }
+                        else if (!string.IsNullOrEmpty(loadError))
+                        {
+                            <div class="text-danger small">@loadError</div>
+                        }
+                        else
+                        {
+                            <div class="display-6 fw-bold mb-0">@labelCount</div>
+                        }
+                        <div class="small text-muted mt-1">Formatos registrados</div>
+                    </div>
+                    <div class="rounded-3 d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#f1f3f5;color:#212529;">
+                        <Icon Name="IconName.UpcScan" Size="IconSize.x4" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @code {
     private int productCount;
+    private int labelCount;
     private bool isLoading = true;
     private string? loadError;
 
@@ -46,8 +75,12 @@
     {
         try
         {
-            var products = await Api.GetProductsAsync();
-            productCount = products?.Count ?? 0;
+            var productsTask = Api.GetProductsAsync();
+            var labelsTask = LabelApi.GetAllAsync();
+            await Task.WhenAll(productsTask, labelsTask);
+
+            productCount = productsTask.Result?.Count ?? 0;
+            labelCount = labelsTask.Result?.Count ?? 0;
         }
         catch (Exception ex)
         {
