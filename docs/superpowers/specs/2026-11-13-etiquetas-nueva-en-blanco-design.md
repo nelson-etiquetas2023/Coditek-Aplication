@@ -9,7 +9,7 @@ Al pulsar **«Nueva etiqueta»**, el modal de alta debe abrir con **Descripción
 - `ScanProWeb/Pages/Etiquetas.razor` únicamente. Sin cambios en API, migraciones ni layout.
 
 ## Enfoque (único sensato)
-1. `OpenNew()`: `editModel = new() { Dpmm = 8, CantidadPorRollo = 1000, Codigo = "", Descripcion = "", CodigoZpl = "", WidthMm = 0, LengthMm = 0 }`; `widthText = ""`; `lengthText = ""`. Se elimina la llamada a `InsertSampleZpl()` y el método `InsertSampleZpl()` (queda sin uso).
+1. `OpenNew()`: `editModel = new() { Dpmm = 8, CantidadPorRollo = 1000, Codigo = "", Descripcion = "", CodigoZpl = "", WidthMm = 0, LengthMm = 0 }`; `widthText = ""`; `lengthText = ""`. Se elimina la llamada a `InsertSampleZpl()` y el método `InsertSampleZpl()` completo.
 2. Validación al guardar (`SaveAsync`, patrón actual de toasts, sin cambios de UX):
    - Descripción no vacía → si falta, toast y no guarda.
    - Ancho/Largo: números en pulgadas, parseables y **> 0** (en blanco → `TryParseInches` falla → toast y no guarda).

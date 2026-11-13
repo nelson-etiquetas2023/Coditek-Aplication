@@ -247,8 +247,8 @@ else
     private Modal? editModal;
     private ApiLabelService.LabelTemplateDto editModel = new();
     private int editingId;
-    private string widthText = "2";
-    private string lengthText = "1";
+    private string widthText = "";
+    private string lengthText = "";
 
     private bool previewLoading;
     private string? previewDataUrl;
@@ -331,6 +331,7 @@ else
     private async Task SaveAsync()
     {
         if (string.IsNullOrWhiteSpace(editModel.Descripcion)) { ToastSvc.Notify(new(ToastType.Danger, "La descripción de la etiqueta es obligatoria.")); return; }
+        if ((editModel.Descripcion?.Length ?? 0) > 1000) { ToastSvc.Notify(new(ToastType.Danger, "La descripción de la etiqueta no puede superar los 1000 caracteres.")); return; }
         if (!TryParseInches(widthText, out var wIn) || !TryParseInches(lengthText, out var lIn))
         {
             ToastSvc.Notify(new(ToastType.Danger, "Ancho y largo deben ser números en pulgadas, ej. 1.2 o 0.7."));

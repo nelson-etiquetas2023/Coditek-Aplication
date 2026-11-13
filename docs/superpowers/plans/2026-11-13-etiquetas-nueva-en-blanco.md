@@ -20,9 +20,9 @@
 
 ## Review Focus
 
-1. **Abrir «Editar» y pulsar Cancelar y luego «Nueva etiqueta»** — deben aparecer los campos en blanco, no los valores del último editado ni del último guardado. → cubierto por Task 1 (estado nuevo en `OpenNew`) y verificado en Task 1 Step 3.
-2. **Ancho o Largo con coma decimal (`1,5`) o en blanco** — `TryParseInches` normaliza coma→punto; en blanco debe fallar la validación con toast. → cubierto por Task 1 Step 3 (casos manuales).
-3. **ZPL vacío pero descripción y dimensiones válidas** — no debe crear; toast «El código ZPL es obligatorio.» → cubierto por Task 1 Step 3.
+1. **Abrir «Editar» y pulsar Cancelar y luego «Nueva etiqueta»** — deben aparecer los campos en blanco, no los valores del último editado ni del último guardado. → cubierto por Task 1 (estado nuevo en `OpenNew`); pendiente de verificación manual en navegador (Task 1 Step 3 no se ejecutó).
+2. **Ancho o Largo con coma decimal (`1,5`) o en blanco** — `TryParseInches` normaliza coma→punto; en blanco debe fallar la validación con toast. → cubierto por Task 1 Step 3 (casos manuales); pendiente de verificación manual en navegador (Step 3 no se ejecutó).
+3. **ZPL vacío pero descripción y dimensiones válidas** — no debe crear; toast «El código ZPL es obligatorio.» → cubierto por Task 1 Step 3; pendiente de verificación manual en navegador (Step 3 no se ejecutó).
 4. **`InsertSampleZpl` eliminado pero referenciado en otro sitio** — `grep` debe devolver 0 referencias tras Task 1. → cubierto por Task 1 Step 2.
 5. **Dpmm/CantidadPorRollo en la etiqueta nueva** — deben conservar defaults `8` y `1000` (los usa la preview y el guardado). → cubierto por Task 1 Interfaces.
 
